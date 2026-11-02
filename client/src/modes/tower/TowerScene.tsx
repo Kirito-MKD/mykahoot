@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRemaining } from '../../lib/time';
 import { darken, lighten, type HostView, type TowerBlock, type TowerColumn, type TowerState } from '@viktorina/shared';
 import { sfx } from '../../lib/sound';
 import { useReducedMotionPref } from '../../lib/motion';
@@ -221,6 +222,21 @@ function Column({
   );
 }
 
+function DropBanner({ endsAt, totalMs, placed, total }: { endsAt: number; totalMs: number; placed: number; total: number }) {
+  const left = useRemaining(endsAt);
+  return (
+    <motion.div className="tw-drop" initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+      <span>Ставим блоки на своих экранах!</span>
+      <b>
+        {placed} из {total}
+      </b>
+      <div className="tw-drop-bar">
+        <div style={{ transform: `scaleX(${Math.max(0, Math.min(1, left / totalMs))})` }} />
+      </div>
+    </motion.div>
+  );
+}
+
 interface Popup {
   id: number;
   x: number;
@@ -232,18 +248,24 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
   const state = view.mode as TowerState;
   const reduced = useReducedMotionPref();
   const ev = state.lastEvent;
-  const shouldAnimate = animate && !!ev && ev.round !== lastAnimatedRound;
-  const [animRound] = useState(() => (shouldAnimate ? ev!.round : -1));
-  const live = animRound !== -1;
+  // Живая анимация — только в фазе события и только один раз за раунд
+  const [live] = useState(() => animate && !!ev && ev.round !== lastAnimatedRound);
   const [monsterPhase, setMonsterPhase] = useState<'hidden' | 'up' | 'windup' | 'strike' | 'down'>('hidden');
   const [hit, setHit] = useState(false);
-  const [flyers, setFlyers] = useState<Flyer[]>([]);
+  const [batches, setBatches] = useState<{ id: number; flyers: Flyer[] }[]>([]);
   const [popups, setPopups] = useState<Popup[]>([]);
   const [shaking, setShaking] = useState(false);
+  // Блоки и промахи, которые уже были на экране, когда сцена открылась, — их не анимируем
+  const seen = useRef<Set<number> | null>(null);
+  if (seen.current === null) {
+    seen.current = new Set(state.columns.flatMap((c) => c.blocks.map((b) => b.id)));
+    if (!live) for (const f of ev?.fails ?? []) seen.current.add(f.id);
+  }
+  const monsterPlayed = useRef(false);
 
   useEffect(() => {
-    if (live) lastAnimatedRound = animRound;
-  }, [live, animRound]);
+    if (live && ev) lastAnimatedRound = ev.round;
+  }, [live, ev]);
 
   const columns = state.columns;
   const W = Math.max(2, columns.length) * COLW;
@@ -251,19 +273,55 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
 
   const newIds = useMemo(() => {
     const m = new Map<number, number>();
-    if (live && ev) ev.added.forEach((a, i) => m.set(a.blockId, i));
+    if (!live) return m;
+    for (const c of columns) for (const b of c.blocks) if (!seen.current!.has(b.id)) m.set(b.id, 0);
+    for (const b of ev?.monster?.removed ?? []) if (!seen.current!.has(b.id)) m.set(b.id, 0);
     return m;
-  }, [live, ev]);
+  }, [live, columns, ev]);
 
   const displayBlocks = (c: TowerColumn): TowerBlock[] =>
     live && ev?.monster && ev.monster.columnId === c.id && !hit ? [...c.blocks, ...ev.monster.removed] : c.blocks;
 
+  // Промахи: блок срывается с верхушки и улетает вниз
+  useEffect(() => {
+    if (!live || !ev) return;
+    const fresh = ev.fails.filter((f) => !seen.current!.has(f.id));
+    if (!fresh.length) return;
+    for (const f of fresh) seen.current!.add(f.id);
+    const flyers: Flyer[] = fresh.map((f) => {
+      const idx = columns.findIndex((c) => c.id === f.columnId);
+      const col = columns[idx];
+      const h = col ? col.blocks.length : 0;
+      return {
+        id: f.id,
+        b: { id: f.id, playerId: '', playerName: f.playerName, offset: f.offset, hue: f.hue },
+        x: idx * COLW + COLW / 2 + f.offset,
+        y: GROUND - PLAT_H - h * BH - BH * 2,
+        vx: Math.sign(f.offset || 1) * (200 + Math.random() * 160),
+        vy: -260,
+        rot: 0,
+        vr: Math.sign(f.offset || 1) * (300 + Math.random() * 300),
+        color: shiftHue(col?.color ?? '#888888', f.hue),
+      };
+    });
+    setBatches((b) => [...b, { id: fresh[0]!.id, flyers }]);
+    sfx.fall();
+    for (const f of fresh) {
+      const idx = columns.findIndex((c) => c.id === f.columnId);
+      const id = f.id * 10 + 7;
+      setPopups((p) => [...p, { id, x: idx * COLW + COLW / 2, y: GROUND - PLAT_H - 40, text: `Мимо! ${f.playerName}` }]);
+      window.setTimeout(() => setPopups((p) => p.filter((x) => x.id !== id)), 1800);
+    }
+  }, [live, ev, columns]);
+
   // Сценарий монстра
   useEffect(() => {
-    if (!live || !ev?.monster || targetIdx < 0) return;
-    const dropsDone = Math.max(1.4, ev.added.length * DROP_STAGGER + 1.1);
+    if (!live || !ev?.monster || targetIdx < 0 || monsterPlayed.current) return;
+    monsterPlayed.current = true;
+    const monster = ev.monster;
+    const dropsDone = 0.7;
     const timers: number[] = [];
-    const at = (s: number, fn: () => void) => timers.push(window.setTimeout(fn, s * 1000));
+    const at = (sec: number, fn: () => void) => timers.push(window.setTimeout(fn, sec * 1000));
     at(dropsDone, () => {
       setMonsterPhase('up');
       sfx.roar();
@@ -274,19 +332,23 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
       const col = columns[targetIdx]!;
       const base = col.blocks.length;
       const cx = targetIdx * COLW + COLW / 2;
-      setFlyers(
-        ev.monster!.removed.map((b, k) => ({
-          id: b.id,
-          b,
-          x: cx + b.offset,
-          y: GROUND - PLAT_H - (base + k) * BH - BH / 2,
-          vx: (Math.random() < 0.5 ? -1 : 1) * (260 + Math.random() * 420),
-          vy: -(520 + Math.random() * 420),
-          rot: 0,
-          vr: (Math.random() - 0.5) * 900,
-          color: shiftHue(col.color, b.hue),
-        })),
-      );
+      setBatches((b) => [
+        ...b,
+        {
+          id: -monster.removed[0]!.id,
+          flyers: monster.removed.map((bl, k) => ({
+            id: bl.id,
+            b: bl,
+            x: cx + bl.offset,
+            y: GROUND - PLAT_H - (base + k) * BH - BH / 2,
+            vx: (Math.random() < 0.5 ? -1 : 1) * (260 + Math.random() * 420),
+            vy: -(520 + Math.random() * 420),
+            rot: 0,
+            vr: (Math.random() - 0.5) * 900,
+            color: shiftHue(col.color, bl.hue),
+          })),
+        },
+      ]);
       setHit(true);
       sfx.crash();
       if (!reduced) {
@@ -295,7 +357,7 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
       }
     });
     at(dropsDone + 3.1, () => setMonsterPhase('down'));
-    return () => timers.forEach(clearTimeout);
+    // Таймеры не сбрасываем при обновлениях состояния — сценарий доигрывается до конца
   }, [live, ev, targetIdx, columns, reduced]);
 
   // Камера: если башня выше экрана — плавно отъезжаем
@@ -313,11 +375,15 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
     sfx.thud();
     const idx = columns.findIndex((c) => c.id === colId);
     const id = b.id * 10 + Math.floor(Math.random() * 9);
-    setPopups((p) => [...p, { id, x: idx * COLW + COLW / 2, y: topY - 16, text: `+10 ${b.playerName}` }]);
+    const perfect = ev?.added.find((a) => a.blockId === b.id)?.perfect;
+    if (perfect) sfx.perfect();
+    setPopups((p) => [...p, { id, x: idx * COLW + COLW / 2, y: topY - 16, text: perfect ? `Идеально! ${b.playerName}` : `+10 ${b.playerName}` }]);
     window.setTimeout(() => setPopups((p) => p.filter((x) => x.id !== id)), 1800);
   };
 
-  const noneAdded = live && ev && ev.added.length === 0 && !ev.monster;
+  const dropping = live ? state.dropping : null;
+  const placed = (ev?.added.length ?? 0) + (ev?.fails.length ?? 0);
+  const noneAdded = live && ev && !dropping && ev.added.length === 0 && ev.fails.length === 0 && !ev.monster;
 
   return (
     <div className={`tower-scene ${shaking ? 'is-shaking' : ''} ${state.others.length ? 'has-others' : ''}`}>
@@ -367,7 +433,9 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
               onLand={onLand}
             />
           ))}
-          <FlyingBlocks flyers={flyers} reduced={reduced} />
+          {batches.map((b) => (
+            <FlyingBlocks key={b.id} flyers={b.flyers} reduced={reduced} />
+          ))}
           <AnimatePresence>
             {popups.map((p) => (
               <motion.text
@@ -387,6 +455,9 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
         </motion.g>
       </svg>
       {noneAdded && <div className="tw-note">В этом раунде никто не добавил блок</div>}
+      {dropping && (
+        <DropBanner endsAt={dropping.endsAt} totalMs={dropping.totalMs} placed={placed} total={placed + dropping.pending.length} />
+      )}
       {live && ev?.monster && monsterPhase !== 'hidden' && (
         <motion.div className="tw-alert" initial={{ scale: 0 }} animate={{ scale: 1 }}>
           Монстр! Лидер теряет {ev.monster.removed.length} блока

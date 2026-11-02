@@ -47,6 +47,7 @@ export interface ModeHandler {
   modeValue(player: Player): number;
   summary(): ModeSummary;
   place?(player: Player, cell: number): Ack;
+  drop?(player: Player, rel: number): Ack<{ result: 'perfect' | 'ok' | 'fail' }>;
   /** Можно ли закончить событие раньше (например, все флаги расставлены) */
   canEndEventEarly?(): boolean;
   dispose(): void;

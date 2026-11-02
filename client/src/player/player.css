@@ -1060,3 +1060,175 @@
     padding: 12px;
   }
 }
+
+/* ═════════════ «Башня»: поставь блок ═════════════ */
+.td {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  gap: 24px;
+  align-items: center;
+}
+.td-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.td-head h1 {
+  font-size: clamp(28px, 3vw, 40px);
+}
+.td-head .pg-sub {
+  text-align: left;
+  font-size: 18px;
+}
+.td-stage {
+  position: relative;
+  height: 100%;
+  min-height: 300px;
+  max-height: calc(100vh - 190px);
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 30%, #2a1a66 0, #160b3a 70%);
+  cursor: pointer;
+  overflow: hidden;
+}
+.td-stage:disabled {
+  cursor: default;
+}
+.td-stage:focus-visible {
+  outline: 5px solid var(--gold);
+}
+.td-name {
+  font-size: 13px;
+  font-weight: 900;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgba(26, 16, 51, 0.6);
+  stroke-width: 3px;
+}
+.td-hint {
+  position: absolute;
+  right: 16px;
+  top: 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
+  animation: td-pulse 0.9s ease-in-out infinite;
+}
+@keyframes td-pulse {
+  50% {
+    transform: scale(1.12);
+  }
+}
+.td-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 60% 50%, rgba(255, 197, 49, 0.45), transparent 55%);
+  animation: td-burst 0.8s ease-out forwards;
+}
+@keyframes td-burst {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (max-width: 900px) {
+  .td {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Правила у ученика */
+.pg-rules {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(820px, 100%);
+}
+.pg-rules-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.pg-rules-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
+.pg-rules-icon {
+  font-size: 34px;
+  width: 44px;
+  text-align: center;
+  flex: none;
+}
+
+/* Эмоции на финале */
+.emo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.22);
+}
+.emo-preview {
+  width: 130px;
+  display: grid;
+  place-items: center;
+}
+.emo-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.emo-title {
+  font-size: 18px;
+  font-weight: 900;
+}
+.emo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.emo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+}
+.emo-btn span {
+  font-size: 24px;
+}
+.emo-btn:hover {
+  background: #fff8e1;
+}

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Avatar, HostView, ReactionEmoji, ServerInfo, TerritoryCell } from '@viktorina/shared';
+import type { Avatar, EmoteId, HostView, ReactionEmoji, ServerInfo, TerritoryCell } from '@viktorina/shared';
 
 export interface FloatingReaction {
   id: number;
@@ -17,6 +17,8 @@ interface HostStore {
   reactions: FloatingReaction[];
   info: ServerInfo | null;
   caughtTick: { playerId: string; at: number } | null;
+  emotes: Record<string, { emote: EmoteId; at: number }>;
+  setEmote: (playerId: string, emote: EmoteId) => void;
   setConnected: (v: boolean) => void;
   setView: (v: HostView | null) => void;
   setAnswers: (a: { count: number; total: number }) => void;
@@ -36,6 +38,8 @@ export const useHost = create<HostStore>((set) => ({
   reactions: [],
   info: null,
   caughtTick: null,
+  emotes: {},
+  setEmote: (playerId, emote) => set((s) => ({ emotes: { ...s.emotes, [playerId]: { emote, at: Date.now() } } })),
   setConnected: (connected) => set({ connected }),
   setView: (view) => set({ view }),
   setAnswers: (answers) => set({ answers }),

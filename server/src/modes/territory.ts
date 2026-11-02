@@ -1,8 +1,10 @@
 import {
-  HEX_COLS,
-  HEX_ROWS,
-  cornerCells,
+  BASE_CAPTURE_COST,
+  BASE_VALUE,
+  hexDistance,
   hexNeighbors,
+  spreadBases,
+  territorySize,
   type Ack,
   type PlayerView,
   type TeamStanding,
@@ -18,40 +20,79 @@ const RECAPTURE_COST = 2;
 
 export class TerritoryMode implements ModeHandler {
   private cells: TerritoryCell[] = [];
+  private cols = 8;
+  private rows = 6;
   private placementEndsAt: number | null = null;
 
   constructor(private readonly game: Game) {
-    this.cells = Array.from({ length: HEX_COLS * HEX_ROWS }, (_, i) => ({ i, ownerId: null, rev: 0 }));
+    this.resize(8, 6);
+  }
+
+  private resize(cols: number, rows: number): void {
+    this.cols = cols;
+    this.rows = rows;
+    this.cells = Array.from({ length: cols * rows }, (_, i) => ({ i, ownerId: null, rev: 0 }));
   }
 
   private ownerOf(p: Player): string {
     return this.game.settings.teamMode ? `t${p.teamId ?? 0}` : `p${p.id}`;
   }
 
+  private neighbors(i: number): number[] {
+    return hexNeighbors(i, this.cols, this.rows);
+  }
+
+  private setBase(cellIndex: number, ownerId: string, name: string, playerId?: string): void {
+    const c = this.cells[cellIndex]!;
+    c.ownerId = ownerId;
+    c.base = true;
+    c.playerName = name;
+    c.playerId = playerId;
+    c.rev++;
+  }
+
   init(): void {
+    const players = this.game.players.size;
+    const { cols, rows } = territorySize(players, this.game.settings.teamMode);
+    this.resize(cols, rows);
     if (this.game.settings.teamMode) {
-      const corners = cornerCells();
-      this.game.teams.forEach((t, k) => {
-        const c = this.cells[corners[k]!]!;
-        c.ownerId = `t${t.id}`;
-        c.base = true;
-        c.playerName = t.name;
-        c.rev++;
-      });
+      const bases = spreadBases(this.game.teams.length, cols, rows);
+      this.game.teams.forEach((t, k) => this.setBase(bases[k]!, `t${t.id}`, t.name));
+    } else {
+      // В игре «каждый сам за себя» у каждого своя башня-база
+      const list = [...this.game.players.values()];
+      const bases = spreadBases(list.length, cols, rows);
+      list.forEach((p, k) => this.setBase(bases[k]!, `p${p.id}`, p.name, p.id));
     }
   }
 
-  onPlayerAdded(): void {}
+  onPlayerAdded(p: Player): void {
+    if (this.game.settings.teamMode || this.cells.length === 0) return;
+    // Опоздавшему — свободная клетка подальше от остальных
+    const taken = this.cells.filter((c) => c.ownerId !== null).map((c) => c.i);
+    let best = -1;
+    let bestD = -1;
+    for (const c of this.cells) {
+      if (c.ownerId !== null) continue;
+      const d = taken.length ? Math.min(...taken.map((t) => hexDistance(c.i, t, this.cols))) : 99;
+      if (d > bestD) {
+        bestD = d;
+        best = c.i;
+      }
+    }
+    if (best >= 0) this.setBase(best, `p${p.id}`, p.name, p.id);
+  }
 
   onPlayerRemoved(p: Player): void {
     // Гексы ушедшего игрока остаются за командой; в одиночной игре освобождаем их
     if (this.game.settings.teamMode) return;
     for (const c of this.cells) {
-      if (c.playerId === p.id) {
+      if (c.ownerId === `p${p.id}`) {
         c.prevOwnerId = c.ownerId;
         c.ownerId = null;
         c.playerId = undefined;
         c.playerName = undefined;
+        c.base = false;
         c.rev++;
       }
     }
@@ -81,6 +122,11 @@ export class TerritoryMode implements ModeHandler {
     this.placementEndsAt = null;
   }
 
+  private costOf(cell: TerritoryCell): number {
+    if (cell.ownerId === null) return 1;
+    return cell.base ? BASE_CAPTURE_COST : RECAPTURE_COST;
+  }
+
   canEndEventEarly(): boolean {
     const connected = [...this.game.players.values()].filter((p) => p.connected);
     return connected.length > 0 && connected.every((p) => p.flags === 0 || !this.hasAnyMove(p));
@@ -90,11 +136,10 @@ export class TerritoryMode implements ModeHandler {
     const mine = this.ownerOf(p);
     const owns = this.cells.some((c) => c.ownerId === mine);
     return this.cells.some((c) => {
-      if (c.base || c.ownerId === mine) return false;
-      const cost = c.ownerId === null ? 1 : RECAPTURE_COST;
-      if (p.flags < cost) return false;
+      if (c.ownerId === mine) return false;
+      if (p.flags < this.costOf(c)) return false;
       if (!owns) return c.ownerId === null;
-      return hexNeighbors(c.i).some((n) => this.cells[n]!.ownerId === mine);
+      return this.neighbors(c.i).some((n) => this.cells[n]!.ownerId === mine);
     });
   }
 
@@ -107,15 +152,15 @@ export class TerritoryMode implements ModeHandler {
     const cell = this.cells[index];
     if (!cell) return { ok: false, error: 'Такой клетки нет' };
     const mine = this.ownerOf(p);
-    if (cell.base) return { ok: false, error: 'Базу захватить нельзя' };
     if (cell.ownerId === mine) return { ok: false, error: this.game.settings.teamMode ? 'Это уже территория твоей команды' : 'Это уже твоя территория' };
-    const cost = cell.ownerId === null ? 1 : RECAPTURE_COST;
+    const cost = this.costOf(cell);
     if (p.flags < cost) {
+      if (cell.base) return { ok: false, error: `Чтобы захватить чужую башню, нужно ${BASE_CAPTURE_COST} флага` };
       return { ok: false, error: cost === RECAPTURE_COST ? 'Чтобы перебить чужой гекс, нужно два флага' : 'Флаги закончились' };
     }
     const ownsAny = this.cells.some((c) => c.ownerId === mine);
     if (ownsAny) {
-      const adjacent = hexNeighbors(index).some((n) => this.cells[n]!.ownerId === mine);
+      const adjacent = this.neighbors(index).some((n) => this.cells[n]!.ownerId === mine);
       if (!adjacent) {
         return {
           ok: false,
@@ -129,7 +174,8 @@ export class TerritoryMode implements ModeHandler {
     cell.prevOwnerId = cell.ownerId;
     cell.ownerId = mine;
     cell.playerId = p.id;
-    cell.playerName = p.name;
+    if (!cell.base) cell.playerName = p.name;
+    else cell.playerName = this.game.settings.teamMode ? (this.game.teams[p.teamId ?? 0]?.name ?? p.name) : p.name;
     cell.rev++;
     p.flags -= cost;
 
@@ -151,9 +197,15 @@ export class TerritoryMode implements ModeHandler {
     return [...this.game.players.values()].map((p) => ({ id: `p${p.id}`, name: p.name, color: p.color }));
   }
 
+  /** Гексы, захваченные каждым игроком (башня считается за несколько гексов) */
   private capturedBy(): Record<string, number> {
     const out: Record<string, number> = {};
-    for (const c of this.cells) if (c.playerId && !c.base) out[c.playerId] = (out[c.playerId] ?? 0) + 1;
+    for (const c of this.cells) {
+      if (!c.playerId || !c.ownerId) continue;
+      if (c.base && this.game.settings.teamMode && c.prevOwnerId === undefined) continue;
+      if (c.base && !this.game.settings.teamMode && c.ownerId === `p${c.playerId}` && c.prevOwnerId === undefined) continue;
+      out[c.playerId] = (out[c.playerId] ?? 0) + (c.base ? BASE_VALUE : 1);
+    }
     return out;
   }
 
@@ -162,8 +214,8 @@ export class TerritoryMode implements ModeHandler {
     for (const p of this.game.players.values()) flags[p.id] = p.flags;
     return {
       kind: 'territory',
-      cols: HEX_COLS,
-      rows: HEX_ROWS,
+      cols: this.cols,
+      rows: this.rows,
       cells: this.cells.map((c) => ({ ...c })),
       owners: this.owners(),
       flags,
@@ -177,8 +229,9 @@ export class TerritoryMode implements ModeHandler {
     return { territory: this.state() };
   }
 
-  private countFor(ownerId: string): number {
-    return this.cells.filter((c) => c.ownerId === ownerId && !c.base).length;
+  /** Земля владельца: гексы + башни (каждая башня = несколько гексов) */
+  private landOf(ownerId: string): number {
+    return this.cells.reduce((s, c) => (c.ownerId === ownerId ? s + (c.base ? BASE_VALUE : 1) : s), 0);
   }
 
   teamStandings(): TeamStanding[] {
@@ -188,27 +241,28 @@ export class TerritoryMode implements ModeHandler {
         name: t.name,
         color: t.color,
         emblem: t.emblem,
-        value: this.countFor(`t${t.id}`),
-        valueLabel: 'гексов',
+        value: this.landOf(`t${t.id}`),
+        valueLabel: 'гексов земли',
         members: [...this.game.players.values()].filter((p) => p.teamId === t.id).length,
       }))
       .sort((a, b) => b.value - a.value);
   }
 
   modeValue(p: Player): number {
-    return this.capturedBy()[p.id] ?? 0;
+    return this.game.settings.teamMode ? (this.capturedBy()[p.id] ?? 0) : this.landOf(`p${p.id}`);
   }
 
   summary(): ModeSummary {
-    const cap = this.capturedBy();
-    const best = [...this.game.players.values()].sort((a, b) => (cap[b.id] ?? 0) - (cap[a.id] ?? 0))[0];
-    const award = best && (cap[best.id] ?? 0) > 0 ? { title: 'Главный захватчик', name: best.name, value: `${cap[best.id]} гекс.` } : null;
+    const players = [...this.game.players.values()];
+    const value = (p: Player) => this.modeValue(p);
+    const best = players.sort((a, b) => value(b) - value(a))[0];
+    const award = best && value(best) > 0 ? { title: 'Главный захватчик', name: best.name, value: `${value(best)} гекс.` } : null;
     let line: string | null = null;
     if (this.game.settings.teamMode) {
       const top = this.teamStandings()[0];
-      if (top) line = `Больше всех гексов у команды «${top.name}» — ${top.value}`;
-    } else if (best && (cap[best.id] ?? 0) > 0) {
-      line = `Больше всех гексов у игрока ${best.name} — ${cap[best.id]}`;
+      if (top) line = `Больше всех земли у команды «${top.name}» — ${top.value} гекс.`;
+    } else if (best && value(best) > 0) {
+      line = `Больше всех земли у игрока ${best.name} — ${value(best)} гекс.`;
     }
     return { modeAward: award, modeResultLine: line };
   }

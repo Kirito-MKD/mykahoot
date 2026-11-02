@@ -5,6 +5,8 @@ import {
   REACTION_COOLDOWN_MS,
   REACTIONS,
   TEAM_PRESETS,
+  EMOTE_COOLDOWN_MS,
+  type EmoteId,
   computePoints,
   evaluateAnswer,
   soloColor,
@@ -114,6 +116,7 @@ export class Game {
       }
     }
     this.mode = createMode(this);
+    this.autoplay = settings.autoplay;
     // Пакетная рассылка: не событие на каждый ответ, а счётчик раз в 250 мс
     this.answersFlush = setInterval(() => this.flush(), 250);
   }
@@ -273,6 +276,14 @@ export class Game {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.phase = phase;
+    // Автоплей: показ ответа и таблица лидеров переключаются сами
+    if (durationMs === null && this.autoplay) {
+      const auto = this.autoDuration(phase);
+      if (auto !== null) {
+        durationMs = auto;
+        onEnd = () => this.next();
+      }
+    }
     this.phaseEndsAt = durationMs === null ? null : Date.now() + durationMs;
     this.mode.onPhase(phase);
     if (durationMs !== null && onEnd) {
@@ -294,8 +305,38 @@ export class Game {
     }
     this.mode.init();
     this.updateRanks();
-    this.setPhase('intro', PHASE_MS.intro, () => this.nextQuestion());
+    if (this.settings.showRules) this.setPhase('rules', PHASE_MS.rules, () => this.beginIntro());
+    else this.beginIntro();
     return { ok: true };
+  }
+
+  private beginIntro(): void {
+    this.setPhase('intro', PHASE_MS.intro, () => this.nextQuestion());
+  }
+
+  autoplay = false;
+
+  private autoDuration(phase: Phase): number | null {
+    if (phase === 'reveal') return PHASE_MS.autoReveal;
+    if (phase === 'leaderboard') return PHASE_MS.autoLeaderboard;
+    return null;
+  }
+
+  /** Включить/выключить автоплей прямо во время игры */
+  setAutoplay(on: boolean): void {
+    this.autoplay = on;
+    const auto = this.autoDuration(this.phase);
+    if (auto !== null) {
+      if (this.timer) clearTimeout(this.timer);
+      this.timer = null;
+      if (on) {
+        this.phaseEndsAt = Date.now() + auto;
+        this.timer = setTimeout(() => this.next(), auto);
+      } else {
+        this.phaseEndsAt = null;
+      }
+    }
+    this.broadcast();
   }
 
   private nextQuestion(): void {
@@ -415,6 +456,9 @@ export class Game {
     switch (this.phase) {
       case 'lobby':
         return this.start();
+      case 'rules':
+        this.beginIntro();
+        return { ok: true };
       case 'intro':
         this.nextQuestion();
         return { ok: true };
@@ -445,7 +489,7 @@ export class Game {
 
   /** «Пропустить»: закончить приём ответов досрочно */
   skip(): Ack {
-    if (this.phase === 'answering' || this.phase === 'question' || this.phase === 'event' || this.phase === 'intro') {
+    if (['answering', 'question', 'event', 'intro', 'rules'].includes(this.phase)) {
       return this.next();
     }
     return { ok: false, error: 'Сейчас нечего пропускать' };
@@ -456,6 +500,14 @@ export class Game {
       if (this.timer) clearTimeout(this.timer);
       this.timer = setTimeout(() => this.endEvent(), 900);
     }
+  }
+
+  /** Режим сам решил, что событие закончено (например, все поставили блоки) */
+  finishEventIn(ms: number): void {
+    if (this.phase !== 'event') return;
+    if (this.timer) clearTimeout(this.timer);
+    this.phaseEndsAt = Date.now() + ms;
+    this.timer = setTimeout(() => this.endEvent(), ms);
   }
 
   private endEvent(): void {
@@ -546,6 +598,20 @@ export class Game {
     return { ok: true, data: { cooldownUntil: now + REACTION_COOLDOWN_MS } };
   }
 
+  emote(p: Player, emote: EmoteId): Ack {
+    if (this.phase !== 'finished') return { ok: false, error: 'Эмоции доступны на пьедестале' };
+    const now = Date.now();
+    if (now - p.lastEmoteAt < EMOTE_COOLDOWN_MS) return { ok: false, error: 'Подожди секунду' };
+    p.lastEmoteAt = now;
+    this.io.to(this.hostRoom).emit('game:emote', { playerId: p.id, emote });
+    return { ok: true };
+  }
+
+  drop(p: Player, rel: number): Ack<{ result: 'perfect' | 'ok' | 'fail' }> {
+    if (!this.mode.drop) return { ok: false, error: 'В этом режиме блоки не ставят' };
+    return this.mode.drop(p, rel);
+  }
+
   place(p: Player, cell: number): Ack {
     if (!this.mode.place) return { ok: false, error: 'В этом режиме нельзя ставить флаги' };
     return this.mode.place(p, cell);
@@ -603,6 +669,7 @@ export class Game {
       phaseEndsAt: this.phaseEndsAt,
       serverNow: Date.now(),
       hostPaused: !this.hostConnected,
+      autoplay: this.autoplay,
       questionIndex: this.questionIndex,
       questionCount: this.questions.length,
       question: showQuestion || this.phase === 'event' || this.phase === 'leaderboard' ? this.publicQuestion() : null,

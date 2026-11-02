@@ -144,37 +144,52 @@
 }
 
 /* ───────── Пьедестал ───────── */
-.podium {
+.podium-wrap {
+  height: 100%;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 10px;
+}
+.podium {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
   justify-content: center;
   gap: 18px;
-  height: 100%;
   width: 100%;
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
 }
 .podium-slot {
   flex: 1;
-  height: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
 }
 .podium-player {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   text-align: center;
+}
+.podium-avatar .avatar {
+  height: min(18vh, 190px);
+  width: auto;
+}
+.place-1 .podium-avatar .avatar {
+  height: min(24vh, 240px);
 }
 .podium-name {
   color: #fff;
-  font-size: 28px;
+  font-size: clamp(22px, 2.2vw, 30px);
   font-weight: 900;
-  max-width: 260px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -189,12 +204,14 @@
   font-variant-numeric: tabular-nums;
 }
 .podium-bar {
+  flex: none;
   width: 100%;
   border-radius: 12px 12px 0 0;
   display: flex;
   justify-content: center;
-  padding-top: 14px;
+  padding-top: 12px;
   overflow: hidden;
+  transform-origin: bottom;
 }
 .place-1 .podium-bar {
   background: var(--gold);
@@ -209,10 +226,44 @@
   box-shadow: inset 0 -12px 0 #b46f3c, inset 8px 0 0 rgba(255, 255, 255, 0.25);
 }
 .podium-place {
-  font-size: 64px;
+  font-size: clamp(44px, 5vw, 72px);
   font-weight: 900;
   color: rgba(26, 16, 51, 0.75);
   line-height: 1;
+}
+.dancefloor {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.22);
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.dancefloor-label {
+  align-self: center;
+  margin-right: 8px;
+  font-size: 15px;
+  opacity: 0.8;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.dancefloor-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+  flex: none;
+  font-size: 12px;
+}
+.dancefloor-item span {
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ───────── Тосты и модальные окна ───────── */

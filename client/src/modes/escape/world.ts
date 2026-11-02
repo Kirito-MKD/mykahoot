@@ -13,6 +13,8 @@ const START_X = 300;
 const O = 0x1a1033;
 /** Сцена рисуется в «дизайн-единицах» высотой 600 и масштабируется под контейнер */
 const DESIGN_H = 600;
+/** Скорость «бега» — с ней прокручивается станция (в единицах сцены в секунду) */
+const RUN_SPEED = 240;
 
 interface Particle {
   x: number;
@@ -22,7 +24,7 @@ interface Particle {
   life: number;
   max: number;
   r: number;
-  kind: 'dust' | 'fire' | 'spark' | 'flash';
+  kind: 'dust' | 'fire' | 'spark' | 'flash' | 'streak';
   color: number;
 }
 
@@ -102,6 +104,9 @@ export class EscapeWorld {
   private camX = 0;
   private robotX = START_X - 300;
   private time = 0;
+  /** «Беговая дорожка»: сколько сцена уже прокрутилась, пока все бегут */
+  private scroll = 0;
+  private scrollSpeed = 0;
   private level = 0;
   private moveRev = -1;
   private obstacleKey = '';
@@ -524,12 +529,12 @@ export class EscapeWorld {
     this.adaptQuality(dt);
     // Узкая полоса над вопросом — «камера ближе»: срезаем потолок, чтобы герои были крупнее
     const aspect = this.app.screen.width / Math.max(1, this.app.screen.height);
-    const H = aspect > 3.2 ? 430 : DESIGN_H;
+    const H = aspect > 3.2 ? 360 : DESIGN_H;
     this.scale = this.app.screen.height / H;
     this.root.scale.set(this.scale);
     const W = this.app.screen.width / this.scale;
     const s = this.state;
-    const newFloor = Math.round(H * (aspect > 3.2 ? 0.74 : 0.66));
+    const newFloor = Math.round(H * (aspect > 3.2 ? 0.78 : 0.66));
     if (newFloor !== this.floorY) {
       this.floorY = newFloor;
       this.drawObstacles(s);
@@ -555,24 +560,30 @@ export class EscapeWorld {
     if (worldEnd + 40 < W) target = (worldEnd - W) / 2;
     this.camX += (target - this.camX) * Math.min(1, dt * 2.2);
 
+    // Все бегут: станция непрерывно уносится назад (влево). Останавливаемся только на итогах уровня
+    const stopped = !!s.banner && s.banner.kind !== 'levelStart';
+    const wantSpeed = this.reduced || stopped ? 0 : RUN_SPEED;
+    this.scrollSpeed += (wantSpeed - this.scrollSpeed) * Math.min(1, dt * 2);
+    this.scroll += this.scrollSpeed * dt;
+
     // Параллакс: дальние планеты медленно, стены средне, пол быстро
     const pf = this.reduced ? 0 : 1;
     this.far.width = W;
     this.far.height = H;
-    this.far.tilePosition.x = -(this.camX * 0.12 + this.time * 6) * pf;
-    this.planets.x = -((this.camX * 0.18 * pf + (this.reduced ? 0 : this.time * 4)) % 3000);
+    this.far.tilePosition.x = -(this.camX * 0.12 + this.scroll * 0.06 + this.time * 6) * pf;
+    this.planets.x = -((this.camX * 0.18 * pf + this.scroll * 0.12 + (this.reduced ? 0 : this.time * 4)) % 3000);
     this.planets.y = H * 0.08;
     this.wall.width = W;
     this.wall.height = this.floorY + 40;
     this.wall.y = this.floorY - this.wall.height + 2;
     this.wall.tilePosition.y = this.wall.height - 400;
-    this.wall.tilePosition.x = -this.camX * 0.5 * pf;
+    this.wall.tilePosition.x = -(this.camX * 0.5 + this.scroll * 0.5) * pf;
     this.world.x = -this.camX;
     this.floor.x = this.camX - 40;
     this.floor.y = this.floorY;
     this.floor.width = W + 80;
     this.floor.height = H - this.floorY + 10;
-    this.floor.tilePosition.x = -(this.camX - 40);
+    this.floor.tilePosition.x = -(this.camX - 40 + this.scroll);
 
     this.updateRobot(dt);
     this.updateRunners(dt);
@@ -593,8 +604,11 @@ export class EscapeWorld {
   }
 
   private updateRobot(dt: number): void {
-    const hover = this.reduced ? 0 : Math.sin(this.time * 3) * 6;
+    const charging = this.scrollSpeed / RUN_SPEED;
+    const hover = this.reduced ? 0 : Math.sin(this.time * 7) * 5;
     this.robot.position.set(this.robotX, this.floorY + 60 + hover);
+    // Робот несётся вперёд: наклон и подрагивание корпуса
+    this.robot.rotation = this.reduced ? 0 : 0.09 * charging + Math.sin(this.time * 23) * 0.012 * charging;
     // Светящиеся глаза
     const e = this.robotEyes;
     e.clear();
@@ -626,18 +640,32 @@ export class EscapeWorld {
     }
     // Огонь из сопла тянется за роботом
     if (!this.reduced) {
-      const n = Math.random() < 0.9 * this.quality ? 2 : 1;
+      const n = Math.random() < 0.9 * this.quality ? 3 : 1;
       for (let i = 0; i < n; i++) {
         this.particles.push({
           x: this.robotX - 20 + (Math.random() - 0.5) * 30,
           y: this.floorY + 60 - 30 + Math.random() * 8,
-          vx: -120 - Math.random() * 120,
-          vy: 30 + Math.random() * 50,
+          vx: -160 - Math.random() * 140 - this.scrollSpeed * 0.8,
+          vy: 20 + Math.random() * 40,
           life: 0,
           max: 0.45 + Math.random() * 0.3,
           r: 10 + Math.random() * 8,
           kind: 'fire',
           color: 0xffc531,
+        });
+      }
+      // Полосы скорости за роботом
+      if (charging > 0.5 && Math.random() < dt * 8 * this.quality) {
+        this.particles.push({
+          x: this.robotX - 90,
+          y: this.floorY - 40 - Math.random() * 160,
+          vx: -this.scrollSpeed * 1.6,
+          vy: 0,
+          life: 0,
+          max: 0.35,
+          r: 40 + Math.random() * 40,
+          kind: 'streak',
+          color: 0xffffff,
         });
       }
     }
@@ -659,27 +687,30 @@ export class EscapeWorld {
         v.x = v.targetX;
       }
       const run = v.status === 'running' && !this.reduced;
-      const speed = 11;
+      // Шаг быстрее, когда станция «несётся», и рывок, когда бегун продвигается вперёд
+      const sprint = v.moveT < v.moveDur && !v.detour ? 1.5 : 1;
+      const speed = (9 + 6 * (this.scrollSpeed / RUN_SPEED)) * sprint;
       const ph = this.time * speed + v.phase;
       const bob = run ? Math.abs(Math.sin(ph)) * 7 : v.status === 'escaped' && !this.reduced ? Math.abs(Math.sin(this.time * 5 + v.phase)) * 12 : 0;
       v.root.position.set(v.x, this.floorY + v.laneY + laneOffset);
       v.body.position.y = -bob - hop - 12;
-      v.body.rotation = run ? Math.sin(ph) * 0.06 + 0.06 : 0;
+      // Бег всерьёз: корпус наклонён вперёд, раскачивается в такт шагам
+      v.body.rotation = run ? Math.sin(ph) * 0.05 + 0.14 * (this.scrollSpeed / RUN_SPEED) + 0.03 : 0;
       v.shadow.scale.set(1 - (bob + hop) / 90);
 
       // Ноги: бег циклом
       const g = v.legs;
       g.clear();
-      const swing = run ? Math.sin(ph) * 14 : 0;
+      const swing = run ? Math.sin(ph) * 17 : 0;
       g.moveTo(-8, -18 - bob - hop).lineTo(-8 + swing, -2 - hop * 0.3).stroke({ width: 7, color: O, cap: 'round' });
       g.moveTo(8, -18 - bob - hop).lineTo(8 - swing, -2 - hop * 0.3).stroke({ width: 7, color: O, cap: 'round' });
 
       // Облачко пыли под ногами
-      if (run && Math.random() < dt * 6 * this.quality) {
+      if (run && Math.random() < dt * 9 * this.quality) {
         this.particles.push({
           x: v.x - 12,
           y: this.floorY + v.laneY - 2,
-          vx: -40 - Math.random() * 40,
+          vx: -60 - Math.random() * 40 - this.scrollSpeed * 0.6,
           vy: -20 - Math.random() * 20,
           life: 0,
           max: 0.6,
@@ -725,6 +756,8 @@ export class EscapeWorld {
         g.circle(p.x, p.y, p.r * (1 - k * 0.6)).fill({ color, alpha: 0.85 * (1 - k) });
       } else if (p.kind === 'dust') {
         g.circle(p.x, p.y, p.r * (0.6 + k)).fill({ color: p.color, alpha: 0.45 * (1 - k) });
+      } else if (p.kind === 'streak') {
+        g.rect(p.x, p.y, p.r, 3).fill({ color: p.color, alpha: 0.35 * (1 - k) });
       } else if (p.kind === 'spark') {
         g.circle(p.x, p.y, p.r * (1 - k)).fill({ color: p.color, alpha: 1 - k });
       } else {

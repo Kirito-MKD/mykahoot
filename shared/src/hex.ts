@@ -54,3 +54,50 @@ export function hexPolygon(cx: number, cy: number, size: number): string {
   }
   return pts.join(' ');
 }
+
+/** Расстояние между гексами (в шагах) для раскладки «нечётные строки сдвинуты вправо» */
+export function hexDistance(a: number, b: number, cols = HEX_COLS): number {
+  const cube = (i: number) => {
+    const { col, row } = hexCoords(i, cols);
+    const x = col - (row - (row & 1)) / 2;
+    const z = row;
+    return { x, z, y: -x - z };
+  };
+  const p = cube(a);
+  const q = cube(b);
+  return Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y), Math.abs(p.z - q.z));
+}
+
+/**
+ * Размер карты зависит от числа игроков: при 3 детях огромное поле никогда не встретится,
+ * а на маленьком соседи быстро упираются друг в друга и могут захватить чужую башню.
+ */
+export function territorySize(players: number, teamMode: boolean): { cols: number; rows: number } {
+  const target = teamMode ? 18 + players * 5 : players * 8;
+  const cells = Math.max(30, Math.min(HEX_COLS * HEX_ROWS, target));
+  const rows = Math.max(5, Math.min(HEX_ROWS, Math.round(Math.sqrt(cells / 1.45))));
+  const cols = Math.max(6, Math.min(HEX_COLS, Math.round(cells / rows)));
+  return { cols, rows };
+}
+
+/** Башни-базы как можно дальше друг от друга: углы, потом самые удалённые клетки */
+export function spreadBases(count: number, cols: number, rows: number): number[] {
+  const all = Array.from({ length: cols * rows }, (_, i) => i);
+  const picks: number[] = [];
+  const corners = cornerCells(cols, rows);
+  for (const c of corners) if (picks.length < count && !picks.includes(c)) picks.push(c);
+  while (picks.length < count && picks.length < all.length) {
+    let best = -1;
+    let bestD = -1;
+    for (const i of all) {
+      if (picks.includes(i)) continue;
+      const d = Math.min(...picks.map((p) => hexDistance(i, p, cols)));
+      if (d > bestD) {
+        bestD = d;
+        best = i;
+      }
+    }
+    picks.push(best);
+  }
+  return picks;
+}

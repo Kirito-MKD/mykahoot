@@ -197,3 +197,40 @@
   right: auto;
   left: 14px;
 }
+
+.tw-drop {
+  position: absolute;
+  left: 50%;
+  top: 112px;
+  translate: -50% 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 10px 20px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+}
+.tw-drop span {
+  font-size: 20px;
+  font-weight: 900;
+}
+.tw-drop b {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.tw-drop-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.tw-drop-bar div {
+  height: 100%;
+  background: var(--gold);
+  transform-origin: left;
+}

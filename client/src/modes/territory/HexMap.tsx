@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { memo, useMemo, useRef, useState } from 'react';
-import { hexCenter, hexNeighbors, hexPolygon, type TerritoryCell, type TerritoryState } from '@viktorina/shared';
+import { BASE_CAPTURE_COST, hexCenter, hexNeighbors, hexPolygon, type TerritoryCell, type TerritoryState } from '@viktorina/shared';
 import { useReducedMotionPref } from '../../lib/motion';
 import './territory.css';
 
@@ -42,7 +42,9 @@ const Cell = memo(function Cell({
   interactive,
   onPick,
   reduced,
+  cols,
 }: {
+  cols: number;
   cell: TerritoryCell;
   color: string | null;
   prevColor: string | null;
@@ -53,7 +55,7 @@ const Cell = memo(function Cell({
   onPick?: (i: number) => void;
   reduced: boolean;
 }) {
-  const { x, y } = hexCenter(cell.i, SIZE);
+  const { x, y } = hexCenter(cell.i, SIZE, cols);
   const [hover, setHover] = useState(false);
   // Вспышка и осколки — только для перехвата, случившегося на глазах, а не при повторном показе карты
   const mountRev = useRef(cell.rev);
@@ -119,6 +121,11 @@ const Cell = memo(function Cell({
         </g>
       )}
       {cell.base && color && <Base color={color} />}
+      {cell.base && labels && cell.playerName && (
+        <text y={21} textAnchor="middle" className="hex-label hex-label-base">
+          {short}
+        </text>
+      )}
       {!cell.base && cell.ownerId && (
         <motion.g
           key={`flag-${cell.rev}`}
@@ -176,8 +183,8 @@ export function HexMap({ state, interactive, labels = true, className }: Props) 
     const mine = interactive.ownerId;
     const ownsAny = state.cells.some((c) => c.ownerId === mine);
     for (const c of state.cells) {
-      if (c.base || c.ownerId === mine) continue;
-      const cost = c.ownerId === null ? 1 : 2;
+      if (c.ownerId === mine) continue;
+      const cost = c.ownerId === null ? 1 : c.base ? BASE_CAPTURE_COST : 2;
       if (interactive.flags < cost) continue;
       if (!ownsAny) {
         if (c.ownerId === null) set.set(c.i, cost);
@@ -202,6 +209,7 @@ export function HexMap({ state, interactive, labels = true, className }: Props) 
             interactive={!!interactive}
             onPick={interactive?.onPick}
             reduced={reduced}
+            cols={state.cols}
           />
         ))}
     </svg>

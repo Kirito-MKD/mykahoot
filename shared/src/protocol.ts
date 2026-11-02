@@ -1,11 +1,12 @@
 import type { Avatar } from './avatar';
 import type { GameMode } from './modes';
-import type { GameSettings, ReactionEmoji } from './settings';
+import type { EmoteId, GameSettings, ReactionEmoji } from './settings';
 import type { QuestionType } from './quiz';
 import type { EmblemId } from './teams';
 
 export type Phase =
   | 'lobby'
+  | 'rules'
   | 'intro'
   | 'question'
   | 'answering'
@@ -130,9 +131,19 @@ export interface TowerColumn {
   blocks: TowerBlock[];
 }
 
+export interface TowerFail {
+  id: number;
+  columnId: string;
+  playerName: string;
+  /** Где блок оказался относительно верхушки (абсолютный сдвиг) */
+  offset: number;
+  hue: number;
+}
+
 export interface TowerEvent {
   round: number;
-  added: { columnId: string; blockId: number; playerName: string }[];
+  added: { columnId: string; blockId: number; playerName: string; perfect: boolean }[];
+  fails: TowerFail[];
   monster?: { columnId: string; removed: TowerBlock[] };
 }
 
@@ -142,6 +153,8 @@ export interface TowerState {
   /** В индивидуальной игре — башни, не попавшие в топ-6 */
   others: { id: string; name: string; height: number; color: string }[];
   lastEvent: TowerEvent | null;
+  /** Идёт расстановка: кто ещё не поставил блок */
+  dropping: { endsAt: number; totalMs: number; pending: string[] } | null;
   monsterEvery: number;
   roundsUntilMonster: number;
   /** Вклад игроков: сколько блоков добавил каждый */
@@ -267,6 +280,7 @@ export interface HostView {
   phaseEndsAt: number | null;
   serverNow: number;
   hostPaused: boolean;
+  autoplay: boolean;
   questionIndex: number;
   questionCount: number;
   question: PublicQuestion | null;
@@ -313,7 +327,18 @@ export interface PlayerView {
   correctAnswers: number[] | null;
   territory: TerritoryState | null;
   escape: { level: number; levels: number; pos: number; trackLength: number; status: RunnerStatus } | null;
-  tower: { height: number; myBlocks: number; columnName: string } | null;
+  tower: {
+    height: number;
+    myBlocks: number;
+    columnName: string;
+    color: string;
+    /** Верхние блоки своей башни — для мини-игры «поставь блок» */
+    top: { offset: number; hue: number; playerName: string }[];
+    canDrop: boolean;
+    dropEndsAt: number | null;
+    dropTotalMs: number;
+    lastDrop: 'perfect' | 'ok' | 'fail' | null;
+  } | null;
   final: { rank: number; score: number; correct: number; total: number; playersCount: number; winnerTeam: string | null } | null;
   reactionCooldownUntil: number;
 }
@@ -347,6 +372,8 @@ export interface ClientToServerEvents {
   'player:answer': (p: { questionIndex: number; choices: number[] }, cb: (res: Ack) => void) => void;
   'player:react': (p: { emoji: ReactionEmoji }, cb: (res: Ack<{ cooldownUntil: number }>) => void) => void;
   'player:place': (p: { cell: number }, cb: (res: Ack) => void) => void;
+  'player:drop': (p: { rel: number }, cb: (res: Ack<{ result: 'perfect' | 'ok' | 'fail' }>) => void) => void;
+  'player:emote': (p: { emote: EmoteId }, cb: (res: Ack) => void) => void;
   'player:leave': () => void;
 
   'host:create': (
@@ -361,6 +388,7 @@ export interface ClientToServerEvents {
   'host:kick': (p: { playerId: string }, cb: (res: Ack) => void) => void;
   'host:end': (cb: (res: Ack) => void) => void;
   'host:close': (cb: (res: Ack) => void) => void;
+  'host:autoplay': (p: { on: boolean }, cb: (res: Ack) => void) => void;
 }
 
 export interface ServerToClientEvents {
@@ -371,6 +399,7 @@ export interface ServerToClientEvents {
   'game:reaction': (p: { playerId: string; name: string; avatar: Avatar; emoji: ReactionEmoji; color: string }) => void;
   'territory:cell': (p: { cell: TerritoryCell; flags: Record<string, number>; captured: Record<string, number> }) => void;
   'escape:caught': (p: { playerId: string }) => void;
+  'game:emote': (p: { playerId: string; emote: EmoteId }) => void;
   'player:kicked': () => void;
   'game:closed': (p: { reason: string }) => void;
 }

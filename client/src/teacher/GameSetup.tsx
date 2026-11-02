@@ -177,6 +177,14 @@ export function GameSetup({ quiz, onClose }: { quiz: QuizSummary; onClose: () =>
             <input type="checkbox" checked={s.shuffleQuestions} onChange={(e) => set('shuffleQuestions', e.target.checked)} />
             Перемешать вопросы
           </label>
+          <label className="gs-check">
+            <input type="checkbox" checked={s.showRules} onChange={(e) => set('showRules', e.target.checked)} />
+            Показать правила перед игрой
+          </label>
+          <label className="gs-check" title="Ответ и таблица лидеров переключаются сами — не нужно нажимать пробел">
+            <input type="checkbox" checked={s.autoplay} onChange={(e) => set('autoplay', e.target.checked)} />
+            Автоплей (игра идёт сама)
+          </label>
           {s.mode === 'territory' && (
             <label className="gs-field">
               <span>Расстановка флагов</span>

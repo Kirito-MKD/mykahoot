@@ -3,9 +3,12 @@ import type { HostView } from '@viktorina/shared';
 import { request } from '../../lib/socket';
 import { Button } from '../../components/Button';
 import { toast } from '../../components/Toast';
+import { useRemaining } from '../../lib/time';
 
 function label(view: HostView): { text: string; variant: 'gold' | 'ghost' } | null {
   switch (view.phase) {
+    case 'rules':
+      return { text: 'Пропустить правила →', variant: 'gold' };
     case 'intro':
     case 'question':
       return { text: 'Пропустить', variant: 'ghost' };
@@ -23,9 +26,20 @@ function label(view: HostView): { text: string; variant: 'gold' | 'ghost' } | nu
 }
 
 /** Главная кнопка ведущего — всегда в одном месте, справа внизу. Дублируется пробелом. */
+function AutoCountdown({ endsAt }: { endsAt: number }) {
+  const left = useRemaining(endsAt);
+  return (
+    <span className="host-next-auto" role="timer">
+      <span className="host-next-auto-bar" style={{ transform: `scaleX(${Math.min(1, left / 6000)})` }} />
+      Автоплей: дальше через {Math.ceil(left / 1000)} с
+    </span>
+  );
+}
+
 export function NextButton({ view, inline }: { view: HostView; inline?: boolean }) {
   const l = label(view);
   if (!l) return null;
+  const auto = view.autoplay && (view.phase === 'reveal' || view.phase === 'leaderboard') && view.phaseEndsAt;
   return (
     <motion.div className={inline ? 'host-next-inline' : 'host-next'} key={view.phase} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: view.phase === 'reveal' ? 0.6 : 0.2 }}>
       <Button
@@ -39,7 +53,7 @@ export function NextButton({ view, inline }: { view: HostView; inline?: boolean 
       >
         {l.text}
       </Button>
-      {l.variant === 'gold' && <span className="host-next-hint">или пробел</span>}
+      {auto ? <AutoCountdown endsAt={view.phaseEndsAt!} /> : l.variant === 'gold' && <span className="host-next-hint">или пробел</span>}
     </motion.div>
   );
 }

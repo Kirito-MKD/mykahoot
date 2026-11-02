@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { HostView, TerritoryState } from '@viktorina/shared';
+import { BASE_VALUE, type HostView, type TerritoryState } from '@viktorina/shared';
 import { useRemaining } from '../../lib/time';
 import { Avatar } from '../../components/avatar/Avatar';
 import { Emblem } from '../../components/Emblem';
@@ -20,7 +20,8 @@ function PlacementTimer({ endsAt, total }: { endsAt: number | null; total: numbe
 
 /** Панели команд: герб, игроки, у лидера — корона, рядом число его флагов */
 export function TerritoryPanels({ view, state }: { view: HostView; state: TerritoryState }) {
-  const count = (id: string) => state.cells.filter((c) => c.ownerId === id && !c.base).length;
+  // Земля: гексы + башни (башня = несколько гексов)
+  const count = (id: string) => state.cells.reduce((s, c) => (c.ownerId === id ? s + (c.base ? BASE_VALUE : 1) : s), 0);
   if (view.settings.teamMode) {
     return (
       <div className="te-panels">
@@ -53,7 +54,7 @@ export function TerritoryPanels({ view, state }: { view: HostView; state: Territ
       </div>
     );
   }
-  const ranked = [...view.players].sort((a, b) => (state.captured[b.id] ?? 0) - (state.captured[a.id] ?? 0)).slice(0, 12);
+  const ranked = [...view.players].sort((a, b) => count(`p${b.id}`) - count(`p${a.id}`)).slice(0, 12);
   return (
     <div className="te-panels">
       <section className="te-team">
@@ -63,10 +64,10 @@ export function TerritoryPanels({ view, state }: { view: HostView; state: Territ
         <ul>
           {ranked.map((m, i) => (
             <li key={m.id}>
-              <span className="te-crown">{i === 0 && (state.captured[m.id] ?? 0) > 0 ? '👑' : ''}</span>
+              <span className="te-crown">{i === 0 ? '👑' : ''}</span>
               <span className="tbl-dot" style={{ background: m.color }} />
               <span className="te-pname">{m.name}</span>
-              <span className="te-hexes">{state.captured[m.id] ?? 0}⬢</span>
+              <span className="te-hexes">{count(`p${m.id}`)}⬢</span>
               <span className="te-flags">{state.flags[m.id] ?? 0}🚩</span>
             </li>
           ))}
@@ -85,7 +86,7 @@ export function TerritoryEvent({ view }: { view: HostView }) {
       </div>
       <aside className="te-side">
         <PlacementTimer endsAt={state.placementEndsAt} total={state.placementTotalMs} />
-        <p className="te-hint">Ставьте флаги на своих экранах: рядом со своей территорией. Чужой гекс — за два флага.</p>
+        <p className="te-hint">Ставьте флаги на своих экранах — рядом со своей землёй. Чужой гекс — 2 флага, чужая башня — 3 флага.</p>
         <TerritoryPanels view={view} state={state} />
       </aside>
     </div>

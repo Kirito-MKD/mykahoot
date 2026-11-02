@@ -24,6 +24,9 @@ export class Player {
   socketId: string | null = null;
   lastSeen = Date.now();
   lastReactionAt = 0;
+  lastEmoteAt = 0;
+  /** «Башня»: результат последней постановки блока */
+  lastDrop: 'perfect' | 'ok' | 'fail' | null = null;
   /** Ответы по номеру вопроса */
   answers = new Map<number, PlayerAnswer>();
   lastPoints = 0;

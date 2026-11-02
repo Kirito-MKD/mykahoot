@@ -1,4 +1,4 @@
-import { avatarSchema, gameSettingsSchema, REACTIONS, type Ack } from '@viktorina/shared';
+import { avatarSchema, EMOTES, gameSettingsSchema, REACTIONS, type Ack } from '@viktorina/shared';
 import type { Socket } from 'socket.io';
 import { z } from 'zod';
 import { getQuiz } from './db';
@@ -140,6 +140,22 @@ export function registerSockets(io: IO, manager: GameManager): void {
       reply(cb, ctx.game.place(ctx.player, parsed.data.cell));
     });
 
+    socket.on('player:drop', (payload: unknown, cb: unknown) => {
+      const ctx = currentPlayer();
+      if (!ctx) return reply(cb, { ok: false, error: 'Ты не в игре' });
+      const parsed = z.object({ rel: z.number().finite() }).safeParse(payload);
+      if (!parsed.success) return reply(cb, { ok: false, error: 'Неверные данные' });
+      reply(cb, ctx.game.drop(ctx.player, parsed.data.rel));
+    });
+
+    socket.on('player:emote', (payload: unknown, cb: unknown) => {
+      const ctx = currentPlayer();
+      if (!ctx) return reply(cb, { ok: false, error: 'Ты не в игре' });
+      const parsed = z.object({ emote: z.enum(EMOTES) }).safeParse(payload);
+      if (!parsed.success) return reply(cb, { ok: false, error: 'Неизвестная эмоция' });
+      reply(cb, ctx.game.emote(ctx.player, parsed.data.emote));
+    });
+
     socket.on('player:leave', () => {
       const ctx = currentPlayer();
       if (!ctx) return;
@@ -196,6 +212,12 @@ export function registerSockets(io: IO, manager: GameManager): void {
     hostAction('host:end', (g) => g.end());
     hostAction('host:close', (g) => {
       g.close('Игра завершена.');
+      return { ok: true };
+    });
+    hostAction('host:autoplay', (g, payload) => {
+      const parsed = z.object({ on: z.boolean() }).safeParse(payload);
+      if (!parsed.success) return { ok: false, error: 'Неверные данные' };
+      g.setAutoplay(parsed.data.on);
       return { ok: true };
     });
     hostAction('host:kick', (g, payload) => {

@@ -1,37 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MODE_INFO, type HostView } from '@viktorina/shared';
-import { isMuted, onMutedChange, setMuted } from '../../lib/sound';
+import { MusicButton, MuteButton } from '../../components/SoundButtons';
 import { request } from '../../lib/socket';
 import { useHost } from '../../store/hostStore';
 import { Button } from '../../components/Button';
 import { Modal } from '../../components/Modal';
 import { toast } from '../../components/Toast';
 import { AnimatePresence } from 'framer-motion';
-
-export function MuteButton() {
-  const [m, setM] = useState(isMuted());
-  useEffect(() => onMutedChange(setM), []);
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      iconOnly
-      aria-pressed={m}
-      aria-label={m ? 'Включить звук' : 'Выключить звук'}
-      title={m ? 'Включить звук' : 'Выключить звук'}
-      onClick={() => setMuted(!m)}
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="#fff" />
-        {m ? (
-          <path d="M16 9 L21 14 M21 9 L16 14" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-        ) : (
-          <path d="M16 8.5 Q19 12 16 15.5 M18.5 6 Q23 12 18.5 18" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        )}
-      </svg>
-    </Button>
-  );
-}
 
 /** Шапка: код игры всегда на виду */
 export function HostHeader({ view }: { view: HostView }) {
@@ -59,6 +34,22 @@ export function HostHeader({ view }: { view: HostView }) {
           👥 {online}
           {online !== view.players.length ? ` / ${view.players.length}` : ''}
         </span>
+        {view.phase !== 'finished' && (
+          <button
+            type="button"
+            className={`hh-auto ${view.autoplay ? 'is-on' : ''}`}
+            role="switch"
+            aria-checked={view.autoplay}
+            title="Автоплей: показ ответа и таблица лидеров переключаются сами"
+            onClick={() => void request('host:autoplay', { on: !view.autoplay })}
+          >
+            <span className="hh-auto-track" aria-hidden="true">
+              <span className="hh-auto-dot" />
+            </span>
+            Автоплей
+          </button>
+        )}
+        <MusicButton />
         <MuteButton />
         {view.phase !== 'finished' && (
           <Button variant="ghost" size="sm" onClick={() => setConfirm(true)}>

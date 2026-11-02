@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { REACTIONS, REACTION_COOLDOWN_MS, type ReactionEmoji } from '@viktorina/shared';
 import { request } from '../lib/socket';
 import { serverNow, useRemaining } from '../lib/time';
+import { sfx } from '../lib/sound';
 
 /** Кнопка «Реакции»: веер из 6 эмодзи, откат 2 секунды с круговым индикатором */
 export function ReactionButton({ disabled, initialCooldown }: { disabled: boolean; initialCooldown: number }) {
@@ -32,6 +33,7 @@ export function ReactionButton({ disabled, initialCooldown }: { disabled: boolea
 
   const send = async (emoji: ReactionEmoji) => {
     setOpen(false);
+    sfx.send();
     setCooldownUntil(serverNow() + REACTION_COOLDOWN_MS);
     const res = await request<{ cooldownUntil: number }>('player:react', { emoji });
     if (res.data?.cooldownUntil) setCooldownUntil(res.data.cooldownUntil);

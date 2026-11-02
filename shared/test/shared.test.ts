@@ -93,3 +93,16 @@ test('соседи гекса', () => {
   assert.deepEqual(hexNeighbors(0).sort((a, b) => a - b), [1, 14]);
   assert.equal(hexNeighbors(14 * 3 + 5).length, 6);
 });
+
+test('карта «Захвата» зависит от числа игроков, базы далеко друг от друга', async () => {
+  const { territorySize, spreadBases, hexDistance } = await import('../src/index');
+  const small = territorySize(3, false);
+  const big = territorySize(25, false);
+  assert.ok(small.cols * small.rows < big.cols * big.rows);
+  assert.ok(small.cols * small.rows >= 30);
+  const bases = spreadBases(6, big.cols, big.rows);
+  assert.equal(new Set(bases).size, 6);
+  for (let i = 0; i < bases.length; i++)
+    for (let j = i + 1; j < bases.length; j++) assert.ok(hexDistance(bases[i]!, bases[j]!, big.cols) >= 2);
+  assert.equal(hexDistance(0, 1, 10), 1);
+});

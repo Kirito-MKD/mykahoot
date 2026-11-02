@@ -1,6 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { MODE_INFO, NAME_MAX, darken, type PlayerView } from '@viktorina/shared';
+import { MODE_INFO, MODE_RULES, NAME_MAX, darken, type PlayerView } from '@viktorina/shared';
+import { sfx } from '../lib/sound';
+import { TowerDrop } from './TowerDrop';
+import { EmotePanel } from './EmotePanel';
 import { request } from '../lib/socket';
 import { useRemaining } from '../lib/time';
 import { usePlayer } from '../store/playerStore';
@@ -89,6 +92,19 @@ export function GameScreen({ view }: { view: PlayerView }) {
 
   useEffect(() => setSending(false), [view.question?.index, view.phase]);
 
+  // Звуки ответа и победы на компьютере ученика
+  const resultKey = view.phase === 'reveal' ? `r${view.lastResult?.questionIndex}` : view.phase === 'finished' ? 'final' : null;
+  useEffect(() => {
+    if (resultKey === 'final') {
+      if (view.final && view.final.rank <= 3) sfx.victory();
+      return;
+    }
+    if (!resultKey || !view.lastResult) return;
+    if (view.lastResult.correct || view.lastResult.points > 0) sfx.correct();
+    else sfx.wrong();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultKey]);
+
   const team = view.team;
   const style = (team
     ? { ['--team']: team.color, ['--team-dark']: team.dark, ['--team-deep']: darken(team.color, 0.55) }
@@ -134,6 +150,29 @@ export function GameScreen({ view }: { view: PlayerView }) {
             <button className="link-btn light" onClick={leave}>
               Выйти из игры
             </button>
+          </div>
+        </Panel>
+      );
+      break;
+
+    case 'rules':
+      content = (
+        <Panel k="rules">
+          <div className="pg-rules">
+            <p className="pg-sub">Как играть</p>
+            <h1 className="pg-big">{MODE_INFO[view.mode].title}</h1>
+            <ol className="pg-rules-list">
+              {MODE_RULES[view.mode].map((r, i) => (
+                <motion.li key={r.title} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 + i * 0.3 }}>
+                  <span className="pg-rules-icon" aria-hidden="true">
+                    {r.icon}
+                  </span>
+                  <span>
+                    <b>{r.title}.</b> {r.text}
+                  </span>
+                </motion.li>
+              ))}
+            </ol>
           </div>
         </Panel>
       );
@@ -265,7 +304,7 @@ export function GameScreen({ view }: { view: PlayerView }) {
                 <h1>{view.me.flags > 0 ? 'Расставь флаги!' : spentAll ? 'Все флаги расставлены!' : 'Флагов нет — смотри, как захватывают другие'}</h1>
                 <p className="pg-sub">
                   {view.me.flags > 0
-                    ? 'Ставь рядом со своей территорией. Свободный гекс — 1 флаг, чужой — 2.'
+                    ? 'Ставь рядом со своей землёй. Свободный гекс — 1 флаг, чужой — 2, чужая башня — 3.'
                     : spentAll
                       ? 'Смотри на экран — как растёт территория.'
                       : 'Отвечай верно — и в следующем раунде флаги будут у тебя.'}
@@ -310,6 +349,12 @@ export function GameScreen({ view }: { view: PlayerView }) {
                 {e.status === 'escaped' ? 'Ты добежал до двери! 🎉' : e.status === 'caught' ? 'Робот тебя догнал — вернёшься на следующем уровне' : `Шагов до двери: ${Math.max(0, e.trackLength - e.pos)}`}
               </p>
             </div>
+          </Panel>
+        );
+      } else if (view.tower && (view.tower.canDrop || view.tower.lastDrop)) {
+        content = (
+          <Panel k={`drop-${view.lastResult?.questionIndex ?? 0}`}>
+            <TowerDrop tower={view.tower} />
           </Panel>
         );
       } else {
@@ -381,7 +426,8 @@ export function GameScreen({ view }: { view: PlayerView }) {
               </span>
             </div>
             {f.winnerTeam && <p className="pg-status">Победила команда «{f.winnerTeam}»</p>}
-            <Button variant="gold" size="lg" onClick={leave}>
+            <EmotePanel avatar={view.me.avatar} />
+            <Button variant="quiet" onClick={leave}>
               На главную
             </Button>
           </div>

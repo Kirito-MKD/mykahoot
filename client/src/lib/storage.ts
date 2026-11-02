@@ -22,5 +22,6 @@ export const KEYS = {
   playerToken: 'viktorina.playerToken',
   hostToken: 'viktorina.hostToken',
   muted: 'viktorina.muted',
+  music: 'viktorina.music',
   lastSettings: 'viktorina.lastSettings',
 } as const;

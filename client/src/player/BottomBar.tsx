@@ -3,6 +3,7 @@ import type { PlayerView } from '@viktorina/shared';
 import { Avatar } from '../components/avatar/Avatar';
 import { Emblem } from '../components/Emblem';
 import { ReactionButton } from './ReactionButton';
+import { MuteButton } from '../components/SoundButtons';
 
 /** Нижняя полоса ученика: аватар, имя, флаги, реакции — всегда на месте */
 export function BottomBar({ view }: { view: PlayerView }) {
@@ -33,6 +34,7 @@ export function BottomBar({ view }: { view: PlayerView }) {
             {view.me.flags} ×🚩
           </motion.span>
         )}
+        <MuteButton variant="quiet" />
         <ReactionButton disabled={view.phase === 'answering'} initialCooldown={view.reactionCooldownUntil} />
       </div>
     </footer>

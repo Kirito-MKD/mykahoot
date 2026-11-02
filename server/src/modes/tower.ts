@@ -1,4 +1,10 @@
-import { PHASE_MS, type PlayerView, type TeamStanding, type TowerBlock, type TowerEvent, type TowerState } from '@viktorina/shared';
+import {
+  PHASE_MS,
+  TOWER_BLOCK_W,
+  TOWER_FALL_RATIO,
+  TOWER_PERFECT_RATIO,
+  type Ack,
+  type PlayerView, type TeamStanding, type TowerBlock, type TowerEvent, type TowerState } from '@viktorina/shared';
 import type { Game } from '../game/Game';
 import type { Player } from '../game/Player';
 import type { ModeHandler, ModeSummary, RoundOutcome } from '../game/types';
@@ -47,27 +53,86 @@ export class TowerMode implements ModeHandler {
 
   onPhase(): void {}
 
+  private dropping: { endsAt: number; totalMs: number; pending: Set<string> } | null = null;
+  private dropTimer: NodeJS.Timeout | null = null;
+
+  /**
+   * После верного ответа каждый сам ставит свой блок: блок качается над башней,
+   * ученик нажимает — блок падает. Ровно — башня растёт, криво — блок срывается вниз.
+   */
   beginEvent(outcome: RoundOutcome): number | null {
     this.round++;
-    const added: TowerEvent['added'] = [];
+    for (const p of this.game.players.values()) p.lastDrop = null;
+    this.lastEvent = { round: this.round, added: [], fails: [] };
     const correct = outcome.entries
       .filter((e) => e.fullyCorrect)
       .sort((a, b) => (a.elapsedMs ?? 0) - (b.elapsedMs ?? 0));
-    for (const e of correct) {
-      const col = this.column(this.columnIdOf(e.player));
-      const block: TowerBlock = {
-        id: ++this.seq,
-        playerId: e.player.id,
-        playerName: e.player.name,
-        // Небольшое случайное смещение ±4px — башня выглядит живой, а не линейкой
-        offset: Math.round(Math.random() * 8 - 4),
-        hue: Math.round(Math.random() * 24 - 12),
-      };
-      col.blocks.push(block);
-      this.contributions.set(e.player.id, (this.contributions.get(e.player.id) ?? 0) + 1);
-      added.push({ columnId: col.id, blockId: block.id, playerName: e.player.name });
+    if (correct.length === 0) {
+      // Блоков нет — сразу проверяем монстра и показываем башни
+      return this.settle(true);
     }
+    const totalMs = PHASE_MS.towerDrop;
+    this.dropping = { endsAt: Date.now() + totalMs, totalMs, pending: new Set(correct.map((e) => e.player.id)) };
+    this.dropTimer = setTimeout(() => this.autoDropAll(), totalMs);
+    // Запас по времени: событие закончит сам режим через finishEventIn
+    return totalMs + PHASE_MS.towerMonsterEvent + 4000;
+  }
 
+  private topOffset(col: Column): number {
+    return col.blocks[col.blocks.length - 1]?.offset ?? 0;
+  }
+
+  drop(p: Player, rel: number): Ack<{ result: 'perfect' | 'ok' | 'fail' }> {
+    if (!this.dropping || !this.dropping.pending.has(p.id)) return { ok: false, error: 'Сейчас нечего ставить' };
+    const result = this.placeBlock(p, rel);
+    this.game.broadcast();
+    if (this.dropping && this.dropping.pending.size === 0) this.finishDropping();
+    return { ok: true, data: { result } };
+  }
+
+  private placeBlock(p: Player, relRaw: number): 'perfect' | 'ok' | 'fail' {
+    this.dropping?.pending.delete(p.id);
+    const rel = Math.max(-1.5, Math.min(1.5, relRaw));
+    const col = this.column(this.columnIdOf(p));
+    const base = this.topOffset(col);
+    const hue = Math.round(Math.random() * 24 - 12);
+    if (Math.abs(rel) > TOWER_FALL_RATIO) {
+      this.lastEvent!.fails.push({ id: ++this.seq, columnId: col.id, playerName: p.name, offset: base + rel * TOWER_BLOCK_W, hue });
+      p.lastDrop = 'fail';
+      return 'fail';
+    }
+    const perfect = Math.abs(rel) < TOWER_PERFECT_RATIO;
+    // Сдвиг копится от блока к блоку — башня может накрениться, но не улететь с платформы
+    const offset = Math.round(Math.max(-70, Math.min(70, perfect ? base : base + rel * TOWER_BLOCK_W)));
+    const block: TowerBlock = { id: ++this.seq, playerId: p.id, playerName: p.name, offset, hue };
+    col.blocks.push(block);
+    this.contributions.set(p.id, (this.contributions.get(p.id) ?? 0) + 1);
+    this.lastEvent!.added.push({ columnId: col.id, blockId: block.id, playerName: p.name, perfect });
+    p.lastDrop = perfect ? 'perfect' : 'ok';
+    return p.lastDrop;
+  }
+
+  /** Время вышло — кто не успел, за того блок ставится сам, чуть криво (но не падает) */
+  private autoDropAll(): void {
+    if (!this.dropping) return;
+    for (const id of [...this.dropping.pending]) {
+      const p = this.game.players.get(id);
+      if (p) this.placeBlock(p, Math.random() * 0.5 - 0.25);
+    }
+    this.finishDropping();
+  }
+
+  private finishDropping(): void {
+    if (this.dropTimer) clearTimeout(this.dropTimer);
+    this.dropTimer = null;
+    this.dropping = null;
+    const ms = this.settle(false);
+    this.game.broadcast();
+    this.game.finishEventIn(ms ?? PHASE_MS.towerSettle);
+  }
+
+  /** Монстр раз в N раундов сносит 2–3 верхних блока у лидера. Возвращает, сколько показывать сцену. */
+  private settle(initial: boolean): number {
     let monster: TowerEvent['monster'];
     if (this.round % this.game.settings.monsterEvery === 0) {
       const all = [...this.columns.values()];
@@ -76,16 +141,27 @@ export class TowerMode implements ModeHandler {
         const leaders = all.filter((c) => c.blocks.length === max);
         const target = leaders[Math.floor(Math.random() * leaders.length)]!;
         const k = Math.min(Math.random() < 0.5 ? 2 : 3, target.blocks.length - 1);
-        const removed = target.blocks.splice(target.blocks.length - k, k);
-        monster = { columnId: target.id, removed };
+        monster = { columnId: target.id, removed: target.blocks.splice(target.blocks.length - k, k) };
       }
     }
-    this.lastEvent = { round: this.round, added, monster };
+    if (this.lastEvent) this.lastEvent.monster = monster;
     if (monster) return PHASE_MS.towerMonsterEvent;
-    return added.length ? PHASE_MS.towerEvent : 2600;
+    return initial ? 2600 : PHASE_MS.towerSettle;
   }
 
-  endEvent(): void {}
+  endEvent(): void {
+    // Преподаватель пропустил расстановку — ставим оставшиеся блоки сами
+    if (this.dropping) {
+      if (this.dropTimer) clearTimeout(this.dropTimer);
+      this.dropTimer = null;
+      for (const id of [...this.dropping.pending]) {
+        const p = this.game.players.get(id);
+        if (p) this.placeBlock(p, Math.random() * 0.5 - 0.25);
+      }
+      this.dropping = null;
+      this.settle(false);
+    }
+  }
 
   isOver(): boolean {
     return false;
@@ -126,6 +202,9 @@ export class TowerMode implements ModeHandler {
         return { id: d.id, name: d.name, height: c.blocks.length, color: d.color };
       }),
       lastEvent: this.lastEvent,
+      dropping: this.dropping
+        ? { endsAt: this.dropping.endsAt, totalMs: this.dropping.totalMs, pending: [...this.dropping.pending] }
+        : null,
       monsterEvery: rounds,
       roundsUntilMonster: rounds - (this.round % rounds),
       contributions: Object.fromEntries(this.contributions),
@@ -134,8 +213,20 @@ export class TowerMode implements ModeHandler {
 
   playerExtras(p: Player): Partial<PlayerView> {
     const col = this.column(this.columnIdOf(p));
-    const name = this.game.settings.teamMode ? (this.game.teams[p.teamId ?? 0]?.name ?? '') : 'Моя башня';
-    return { tower: { height: col.blocks.length, myBlocks: this.contributions.get(p.id) ?? 0, columnName: name } };
+    const team = this.game.settings.teamMode ? this.game.teams[p.teamId ?? 0] : null;
+    return {
+      tower: {
+        height: col.blocks.length,
+        myBlocks: this.contributions.get(p.id) ?? 0,
+        columnName: team?.name ?? 'Моя башня',
+        color: team?.color ?? p.color,
+        top: col.blocks.slice(-6).map((b) => ({ offset: b.offset, hue: b.hue, playerName: b.playerName })),
+        canDrop: !!this.dropping?.pending.has(p.id),
+        dropEndsAt: this.dropping?.endsAt ?? null,
+        dropTotalMs: this.dropping?.totalMs ?? PHASE_MS.towerDrop,
+        lastDrop: p.lastDrop,
+      },
+    };
   }
 
   teamStandings(): TeamStanding[] {
@@ -174,5 +265,7 @@ export class TowerMode implements ModeHandler {
     return { modeAward: award, modeResultLine: line };
   }
 
-  dispose(): void {}
+  dispose(): void {
+    if (this.dropTimer) clearTimeout(this.dropTimer);
+  }
 }

@@ -50,40 +50,41 @@ export function QuestionScreen({ view, compact }: { view: HostView; compact?: bo
 
   return (
     <motion.div className={`q ${compact ? 'is-compact' : ''} ${reveal ? 'is-reveal' : ''}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <h1 className="q-text">{q.text}</h1>
-      <div className="q-mid">
-        <div className="q-side">
+      {/* Верхняя строка: таймер — вопрос — счётчик и кнопка. Ничего не наезжает на варианты ответа */}
+      <div className="q-top">
+        <div className="q-left">
           {reveal ? (
             <div className="q-stat">
               <b>
                 {reveal.correctCount}/{reveal.totalPlayers}
               </b>
-              <span>ответили верно</span>
+              <span>верно</span>
             </div>
           ) : (
-            <TimerRing endsAt={view.phaseEndsAt} totalMs={q.timeLimit * 1000} size={compact ? 92 : 140} ticking />
+            <TimerRing endsAt={view.phaseEndsAt} totalMs={q.timeLimit * 1000} size={compact ? 76 : 104} ticking />
           )}
         </div>
-        <div className="q-center">
-          {reveal ? (
-            <DistributionChart answers={q.answers} distribution={reveal.distribution} correct={reveal.correct} />
-          ) : q.imageUrl ? (
-            <img className="q-img" src={q.imageUrl} alt="Картинка к вопросу" />
-          ) : (
-            <div className="q-noimg" aria-hidden="true">
-              {q.type === 'multiple' ? 'Несколько верных ответов' : q.type === 'trueFalse' ? 'Правда или ложь?' : '?'}
-            </div>
-          )}
-        </div>
-        <div className="q-side q-side-right">
+        <h1 className="q-text">{q.text}</h1>
+        <div className="q-right">
           <div className="q-stat" aria-live="polite">
             <motion.b key={count} initial={{ scale: 1.4 }} animate={{ scale: 1 }}>
               {count}
             </motion.b>
-            <span>{reveal ? 'ответили' : `из ${total} ответили`}</span>
+            <span>{reveal ? 'ответили' : `из ${total}`}</span>
           </div>
           <NextButton view={view} inline />
         </div>
+      </div>
+      <div className="q-center">
+        {reveal ? (
+          <DistributionChart answers={q.answers} distribution={reveal.distribution} correct={reveal.correct} />
+        ) : q.imageUrl ? (
+          <img className="q-img" src={q.imageUrl} alt="Картинка к вопросу" />
+        ) : (
+          <div className="q-noimg" aria-hidden="true">
+            {q.type === 'multiple' ? 'Несколько верных ответов' : q.type === 'trueFalse' ? 'Правда или ложь?' : '?'}
+          </div>
+        )}
       </div>
       <div className={`q-tiles q-tiles-${q.answers.length}`}>
         {q.answers.map((a, i) => {

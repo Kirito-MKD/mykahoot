@@ -15,6 +15,10 @@ export const gameSettingsSchema = z.object({
   levelMinutes: z.number().min(1).max(15),
   /** «Захват территории»: секунд на расстановку флагов */
   placementSeconds: z.number().int().min(5).max(60),
+  /** Автоплей: после показа ответа и таблицы лидеров игра идёт дальше сама */
+  autoplay: z.boolean().default(false),
+  /** Показывать экран с правилами режима перед первым вопросом */
+  showRules: z.boolean().default(true),
 });
 export type GameSettings = z.infer<typeof gameSettingsSchema>;
 
@@ -28,11 +32,20 @@ export const DEFAULT_SETTINGS: GameSettings = {
   monsterEvery: 5,
   levelMinutes: 5,
   placementSeconds: 15,
+  autoplay: false,
+  showRules: true,
 };
 
 /** Длительности фаз (мс) */
 export const PHASE_MS = {
   intro: 4000,
+  rules: 16000,
+  /** Автоплей: сколько показывать правильный ответ и таблицу лидеров */
+  autoReveal: 6000,
+  autoLeaderboard: 6000,
+  /** «Башня»: сколько ждать, пока дети поставят блоки */
+  towerDrop: 12000,
+  towerSettle: 2200,
   question: 2000,
   towerEvent: 4200,
   towerMonsterEvent: 7600,
@@ -47,3 +60,27 @@ export type ReactionEmoji = (typeof REACTIONS)[number];
 export const REACTION_COOLDOWN_MS = 2000;
 
 export const NAME_MAX = 20;
+
+/** Эмоции персонажа на пьедестале */
+export const EMOTES = ['dance', 'jump', 'spin', 'wave', 'flex', 'floss'] as const;
+export type EmoteId = (typeof EMOTES)[number];
+export const EMOTE_INFO: Record<EmoteId, { label: string; icon: string }> = {
+  dance: { label: 'Танец', icon: '💃' },
+  jump: { label: 'Прыжки', icon: '🦘' },
+  spin: { label: 'Вертушка', icon: '🌀' },
+  wave: { label: 'Привет', icon: '👋' },
+  flex: { label: 'Сила', icon: '💪' },
+  floss: { label: 'Флосс', icon: '🕺' },
+};
+export const EMOTE_COOLDOWN_MS = 1200;
+
+/** «Башня»: если блок сдвинут больше чем на эту долю ширины — он падает */
+export const TOWER_FALL_RATIO = 0.55;
+/** Меньше этой доли — «Идеально!», блок ставится ровно */
+export const TOWER_PERFECT_RATIO = 0.08;
+/** Ширина блока в единицах сцены */
+export const TOWER_BLOCK_W = 128;
+/** «Захват территории»: сколько флагов стоит чужая башня-база */
+export const BASE_CAPTURE_COST = 3;
+/** «Захват территории»: башня-база в подсчёте стоит столько гексов */
+export const BASE_VALUE = 3;
