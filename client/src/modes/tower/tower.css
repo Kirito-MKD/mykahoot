@@ -1,0 +1,186 @@
+.tower-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #160b3a;
+}
+.tower-scene.is-shaking {
+  animation: screen-shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes screen-shake {
+  10%, 90% { transform: translate(-3px, 1px); }
+  20%, 80% { transform: translate(6px, -2px); }
+  30%, 50%, 70% { transform: translate(-10px, 3px); }
+  40%, 60% { transform: translate(10px, -3px); }
+}
+.space {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.space-layer {
+  position: absolute;
+  inset: 0;
+  width: 200%;
+}
+.space-far {
+  animation: space-pan 160s linear infinite;
+}
+.space-mid {
+  animation: space-pan 90s linear infinite;
+}
+.space-near {
+  animation: space-pan 40s linear infinite;
+}
+@keyframes space-pan {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.space.is-static .space-layer {
+  animation: none;
+}
+.tw-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tw-counters {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10px;
+  display: grid;
+  z-index: 2;
+  pointer-events: none;
+}
+.tw-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+}
+.tw-counter-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 6px;
+  border-radius: 999px;
+  background: var(--tc);
+  border: 3px solid #1a1033;
+  font-size: 16px;
+  max-width: 92%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tw-counter b {
+  font-size: 44px;
+  line-height: 1.1;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+.tw-counter small {
+  margin-top: -4px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+.tw-block-name {
+  font-size: 13px;
+  font-weight: 900;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgba(26, 16, 51, 0.6);
+  stroke-width: 3px;
+}
+.tw-popup {
+  font-size: 26px;
+  font-weight: 900;
+  fill: #ffc531;
+  paint-order: stroke;
+  stroke: #1a1033;
+  stroke-width: 6px;
+  stroke-linejoin: round;
+}
+.tw-more {
+  font-size: 20px;
+  font-weight: 900;
+  fill: #fff;
+}
+.tw-fire {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: fire 0.25s ease-in-out infinite alternate;
+}
+@keyframes fire {
+  from { transform: scaleY(0.88) scaleX(1.04); }
+  to { transform: scaleY(1.12) scaleX(0.96); }
+}
+.tw-note {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: rgba(26, 11, 59, 0.75);
+  color: #fff;
+  font-size: 24px;
+  z-index: 3;
+}
+.tw-note-small {
+  top: auto;
+  bottom: 14px;
+  transform: translateX(-50%);
+  font-size: 18px;
+  padding: 8px 16px;
+}
+.tw-alert {
+  position: absolute;
+  left: 50%;
+  top: 120px;
+  translate: -50% 0;
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 var(--bad-dark);
+  z-index: 3;
+}
+.tw-others {
+  position: absolute;
+  right: 12px;
+  top: 120px;
+  bottom: 12px;
+  width: 210px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(26, 11, 59, 0.75);
+  color: #fff;
+  overflow: auto;
+  z-index: 3;
+}
+.tw-others span {
+  font-size: 14px;
+  opacity: 0.8;
+}
+.tw-others ol {
+  margin: 6px 0 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 15px;
+}
+.tw-others li b {
+  float: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tw-fire,
+  .tower-scene.is-shaking {
+    animation: none;
+  }
+}

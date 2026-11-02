@@ -1,0 +1,115 @@
+{
+  "title": "Демо: Окружающий мир",
+  "description": "Пробный тест, чтобы посмотреть все режимы игры",
+  "defaultTimeLimit": 20,
+  "questions": [
+    {
+      "type": "quiz",
+      "question": "Какая планета изображена на картинке?",
+      "image": "1.png",
+      "timeLimit": 20,
+      "answers": [
+        { "text": "Марс", "correct": false },
+        { "text": "Сатурн", "correct": true },
+        { "text": "Венера", "correct": false },
+        { "text": "Меркурий", "correct": false }
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "question": "Вода кипит при 100 °C на уровне моря.",
+      "timeLimit": 15,
+      "answers": [
+        { "text": "Правда", "correct": true },
+        { "text": "Ложь", "correct": false }
+      ]
+    },
+    {
+      "type": "multiple",
+      "question": "Какие из этих животных — млекопитающие? Отметь все верные.",
+      "timeLimit": 30,
+      "answers": [
+        { "text": "Кит", "correct": true },
+        { "text": "Акула", "correct": false },
+        { "text": "Летучая мышь", "correct": true },
+        { "text": "Дельфин", "correct": true }
+      ]
+    },
+    {
+      "type": "quiz",
+      "question": "Сколько сторон у этой фигуры?",
+      "image": true,
+      "timeLimit": 20,
+      "answers": [
+        { "text": "5", "correct": false },
+        { "text": "6", "correct": true },
+        { "text": "7", "correct": false },
+        { "text": "8", "correct": false }
+      ]
+    },
+    {
+      "type": "quiz",
+      "question": "Какой газ растения поглощают из воздуха?",
+      "timeLimit": 20,
+      "answers": [
+        { "text": "Кислород", "correct": false },
+        { "text": "Углекислый газ", "correct": true },
+        { "text": "Азот", "correct": false },
+        { "text": "Гелий", "correct": false }
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "question": "Луна светится собственным светом.",
+      "timeLimit": 15,
+      "answers": [
+        { "text": "Правда", "correct": false },
+        { "text": "Ложь", "correct": true }
+      ]
+    },
+    {
+      "type": "quiz",
+      "question": "Чей это лист?",
+      "image": "лист-клёна.png",
+      "timeLimit": 20,
+      "answers": [
+        { "text": "Берёза", "correct": false },
+        { "text": "Дуб", "correct": false },
+        { "text": "Клён", "correct": true },
+        { "text": "Липа", "correct": false }
+      ]
+    },
+    {
+      "type": "quiz",
+      "question": "Самый большой океан на Земле?",
+      "timeLimit": 15,
+      "answers": [
+        { "text": "Атлантический", "correct": false },
+        { "text": "Индийский", "correct": false },
+        { "text": "Тихий", "correct": true },
+        { "text": "Северный Ледовитый", "correct": false }
+      ]
+    },
+    {
+      "type": "quiz",
+      "question": "Сколько ног у паука?",
+      "timeLimit": 15,
+      "answers": [
+        { "text": "6", "correct": false },
+        { "text": "8", "correct": true },
+        { "text": "10", "correct": false }
+      ]
+    },
+    {
+      "type": "multiple",
+      "question": "Какие из этих веществ — жидкости при комнатной температуре?",
+      "timeLimit": 25,
+      "answers": [
+        { "text": "Ртуть", "correct": true },
+        { "text": "Железо", "correct": false },
+        { "text": "Вода", "correct": true },
+        { "text": "Соль", "correct": false }
+      ]
+    }
+  ]
+}

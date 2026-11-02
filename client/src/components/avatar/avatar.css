@@ -1,0 +1,22 @@
+.avatar {
+  display: block;
+  overflow: visible;
+}
+.avatar-idle .avatar-body {
+  transform-origin: 100px 210px;
+  animation: avatar-idle 2.8s ease-in-out infinite;
+}
+@keyframes avatar-idle {
+  0%,
+  100% {
+    transform: rotate(-2.5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2.5deg) translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-idle .avatar-body {
+    animation: none;
+  }
+}

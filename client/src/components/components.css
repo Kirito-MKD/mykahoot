@@ -1,0 +1,270 @@
+/* ───────── Таймер ───────── */
+.timer-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.timer-ring svg {
+  position: absolute;
+  inset: 0;
+}
+.timer-ring circle {
+  transition: stroke 0.3s;
+}
+.timer-ring-num {
+  position: relative;
+  color: #fff;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.timer-ring.is-urgent .timer-ring-num {
+  animation: pulse-num 1s ease-in-out infinite;
+}
+@keyframes pulse-num {
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* ───────── Конфетти ───────── */
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* ───────── Таблица лидеров ───────── */
+.leaderboard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 20px 8px 10px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 rgba(26, 11, 59, 0.35);
+  border-left: 10px solid var(--row-color, var(--purple));
+}
+.lb-row.is-me {
+  outline: 4px solid var(--gold);
+}
+.lb-row.is-up {
+  background: #fffbe8;
+}
+.lb-rank {
+  width: 44px;
+  text-align: center;
+  font-size: 28px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.lb-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-streak {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff1e0;
+  color: #c2410c;
+  font-size: 18px;
+}
+.lb-gain {
+  color: var(--ok);
+  font-size: 20px;
+}
+.lb-score {
+  min-width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────── Диаграмма ───────── */
+.dist {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(12px, 3vw, 40px);
+  height: 100%;
+  min-height: 160px;
+}
+.dist-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: clamp(70px, 10vw, 150px);
+  height: 100%;
+  transition: opacity 0.3s;
+}
+.dist-col.is-wrong {
+  opacity: 0.45;
+}
+.dist-count {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 900;
+}
+.dist-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.dist-bar {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+}
+.dist-label {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 0 0 8px 8px;
+}
+
+/* ───────── Пьедестал ───────── */
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 18px;
+  height: 100%;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.podium-slot {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+.podium-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.podium-name {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 900;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+.podium-score {
+  padding: 2px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.podium-bar {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 14px;
+  overflow: hidden;
+}
+.place-1 .podium-bar {
+  background: var(--gold);
+  box-shadow: inset 0 -12px 0 var(--gold-dark), inset 8px 0 0 rgba(255, 255, 255, 0.25);
+}
+.place-2 .podium-bar {
+  background: #d9dbe6;
+  box-shadow: inset 0 -12px 0 #a8abbd, inset 8px 0 0 rgba(255, 255, 255, 0.35);
+}
+.place-3 .podium-bar {
+  background: #e3a06b;
+  box-shadow: inset 0 -12px 0 #b46f3c, inset 8px 0 0 rgba(255, 255, 255, 0.25);
+}
+.podium-place {
+  font-size: 64px;
+  font-weight: 900;
+  color: rgba(26, 16, 51, 0.75);
+  line-height: 1;
+}
+
+/* ───────── Тосты и модальные окна ───────── */
+.toast-layer {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  pointer-events: none;
+}
+.toast {
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: var(--shadow);
+  max-width: min(560px, 90vw);
+  text-align: center;
+}
+.toast.is-error {
+  background: var(--bad);
+}
+.toast.is-ok {
+  background: var(--ok);
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(26, 11, 59, 0.6);
+  backdrop-filter: blur(3px);
+}
+.modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 28px;
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.modal h2 {
+  font-size: 26px;
+  margin-bottom: 12px;
+}

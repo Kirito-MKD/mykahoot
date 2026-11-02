@@ -1,0 +1,30 @@
+{
+  "name": "viktorina",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Школьная викторина для локальной сети класса",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "npm run build && npm run serve",
+    "build": "npm run build -w client",
+    "serve": "node --import tsx server/src/index.ts",
+    "dev": "concurrently -k -n server,client -c magenta,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "typecheck": "tsc -p shared && tsc -p server && tsc -p client",
+    "test": "node --import tsx --test shared/test/*.test.ts server/test/*.test.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "tsx": "^4.19.2"
+  }
+}
