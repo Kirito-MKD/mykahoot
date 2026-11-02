@@ -81,7 +81,7 @@ function ProgressBar({ s, at }: { s: EscapeState; at: number }) {
               style={{ ['--rc' as string]: r.color, zIndex: 10 + i }}
               title={r.name}
             >
-              <Avatar avatar={r.avatar} size={30} />
+              <Avatar avatar={r.avatar} crop="head" size={30} />
             </motion.div>
           )),
         )}

@@ -24,8 +24,17 @@ function AvatarArt({ avatar }: { avatar: AvatarData }) {
   );
 }
 
+/** Кадрирование миниатюр: целиком, только голова (очки, шапки) или только туловище (одежда) */
+export type AvatarCrop = 'full' | 'head' | 'body';
+const VIEWBOX: Record<AvatarCrop, string> = {
+  full: '0 -30 200 254',
+  head: '22 -26 156 156',
+  body: '14 120 172 106',
+};
+
 interface Props {
   avatar: AvatarData;
+  crop?: AvatarCrop;
   size?: number;
   idle?: boolean;
   className?: string;
@@ -33,13 +42,15 @@ interface Props {
 }
 
 /** Аватар ученика. Передаётся по сети только описание {base,color,hat,glasses,outfit} — рисуют клиенты. */
-export const Avatar = memo(function Avatar({ avatar, size = 96, idle = false, className, title }: Props) {
+export const Avatar = memo(function Avatar({ avatar, crop = 'full', size = 96, idle = false, className, title }: Props) {
+  const vb = VIEWBOX[crop];
+  const [, , vw, vh] = vb.split(' ').map(Number);
   return (
     <svg
-      className={`avatar ${idle ? 'avatar-idle' : ''} ${className ?? ''}`}
+      className={`avatar ${crop !== 'full' ? 'avatar-crop' : ''} ${idle ? 'avatar-idle' : ''} ${className ?? ''}`}
       width={size}
-      height={size * 1.27}
-      viewBox="0 -30 200 254"
+      height={(size * vh!) / vw!}
+      viewBox={vb}
       role="img"
       aria-label={title}
     >

@@ -27,7 +27,7 @@ export function Intro({ view }: { view: HostView }) {
                 <ul>
                   {members.map((m, k) => (
                     <motion.li key={m.id} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.4 + ti * 0.1 + k * 0.05 }}>
-                      <Avatar avatar={m.avatar} size={34} />
+                      <Avatar avatar={m.avatar} crop="head" size={34} />
                       {m.name}
                     </motion.li>
                   ))}

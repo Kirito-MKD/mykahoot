@@ -88,7 +88,7 @@ export function AvatarBuilder({ initial, submitLabel, busy, onDone, onBack, titl
         <Ribbon label="Животное">
           {AVATAR_BASES.map((b) => (
             <Option key={b} label={AVATAR_BASE_LABELS[b]} selected={a.base === b} onSelect={() => set('base', b)}>
-              <Avatar avatar={{ ...a, base: b, hat: 'none', glasses: 'none' }} size={58} />
+              <Avatar avatar={{ ...a, base: b, hat: 'none', glasses: 'none' }} crop="head" size={58} />
             </Option>
           ))}
         </Ribbon>
@@ -103,21 +103,21 @@ export function AvatarBuilder({ initial, submitLabel, busy, onDone, onBack, titl
         <Ribbon label="Шапка">
           {AVATAR_HATS.map((h) => (
             <Option key={h} label={AVATAR_HAT_LABELS[h]} selected={a.hat === h} onSelect={() => set('hat', h)}>
-              {h === 'none' ? <span className="ab-none">без</span> : <Avatar avatar={{ ...a, hat: h }} size={58} />}
+              {h === 'none' ? <span className="ab-none">без</span> : <Avatar avatar={{ ...a, hat: h }} crop="head" size={58} />}
             </Option>
           ))}
         </Ribbon>
         <Ribbon label="Очки">
           {AVATAR_GLASSES.map((g) => (
             <Option key={g} label={AVATAR_GLASSES_LABELS[g]} selected={a.glasses === g} onSelect={() => set('glasses', g)}>
-              {g === 'none' ? <span className="ab-none">без</span> : <Avatar avatar={{ ...a, glasses: g, hat: 'none' }} size={58} />}
+              {g === 'none' ? <span className="ab-none">без</span> : <Avatar avatar={{ ...a, glasses: g, hat: 'none' }} crop="head" size={58} />}
             </Option>
           ))}
         </Ribbon>
         <Ribbon label="Одежда">
           {AVATAR_OUTFITS.map((o) => (
             <Option key={o} label={AVATAR_OUTFIT_LABELS[o]} selected={a.outfit === o} onSelect={() => set('outfit', o)}>
-              <Avatar avatar={{ ...a, outfit: o }} size={58} />
+              <Avatar avatar={{ ...a, outfit: o }} crop="body" size={60} />
             </Option>
           ))}
         </Ribbon>

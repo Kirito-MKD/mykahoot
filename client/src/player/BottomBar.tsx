@@ -10,7 +10,7 @@ export function BottomBar({ view }: { view: PlayerView }) {
   return (
     <footer className="pg-bar">
       <div className="pg-bar-me">
-        <Avatar avatar={view.me.avatar} size={46} />
+        <Avatar avatar={view.me.avatar} crop="head" size={46} />
         <div className="stack" style={{ minWidth: 0 }}>
           <span className="pg-bar-name">{view.me.name}</span>
           {view.team ? (

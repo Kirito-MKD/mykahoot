@@ -100,7 +100,7 @@ export function Lobby({ view }: { view: HostView }) {
                     exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                   >
-                    <Avatar avatar={p.avatar} size={54} />
+                    <Avatar avatar={p.avatar} crop="head" size={54} />
                     <span className="lobby-player-name">{p.name}</span>
                     <button
                       className="lobby-kick"

@@ -106,7 +106,8 @@
   overflow: hidden;
 }
 .es-bar-runner .avatar {
-  margin-top: 8px;
+  width: 30px;
+  height: 30px;
 }
 .es-bar-door {
   position: absolute;

@@ -1004,7 +1004,7 @@
   gap: 2px;
 }
 .reaction-emoji {
-  font-size: 54px;
+  font-size: 72px;
   line-height: 1;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
 }
@@ -1012,11 +1012,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 10px 2px 2px;
+  padding: 2px 12px 2px 2px;
   border-radius: 999px;
   background: #fff;
   color: var(--ink);
   border: 3px solid var(--rc);
-  font-size: 13px;
+  font-size: 17px;
   white-space: nowrap;
 }

@@ -270,7 +270,7 @@
 
 /* ═════════════ Конструктор аватара ═════════════ */
 .ab-card {
-  width: min(1100px, 100%);
+  width: min(1200px, 100%);
   padding: 18px 26px;
 }
 .ab {
@@ -291,8 +291,10 @@
   align-self: center;
 }
 .ab-preview {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
   height: clamp(150px, 24vh, 240px);
   margin: 0 auto;
   width: 280px;
@@ -348,9 +350,16 @@
   box-shadow: 0 0 0 3px var(--gold);
 }
 .ab-opt .avatar {
-  margin-top: 10px;
   width: 86%;
   height: auto;
+}
+.ab-preview > div {
+  height: 100%;
+  aspect-ratio: 200 / 254;
+}
+.ab-preview .avatar {
+  width: 100%;
+  height: 100%;
 }
 .ab-swatch {
   width: 36px;

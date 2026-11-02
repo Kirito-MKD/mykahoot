@@ -27,7 +27,7 @@ export function ReactionsLayer() {
           >
             <span className="reaction-emoji">{r.emoji}</span>
             <span className="reaction-who">
-              <Avatar avatar={r.avatar} size={26} />
+              <Avatar avatar={r.avatar} crop="head" size={30} />
               {r.name}
             </span>
           </motion.div>

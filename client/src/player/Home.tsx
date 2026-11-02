@@ -59,7 +59,7 @@ export function Home({ onJoin, onEditProfile, joining }: Props) {
             </Button>
             {profile && (
               <div className="p-join-as">
-                <Avatar avatar={profile.avatar} size={44} />
+                <Avatar avatar={profile.avatar} crop="head" size={44} />
                 <span>
                   Ты зайдёшь как <b>{profile.name}</b>
                 </span>
@@ -110,7 +110,7 @@ export function Home({ onJoin, onEditProfile, joining }: Props) {
         )}
         {profile && !single && (
           <button className="p-profile-pill" onClick={() => onEditProfile('')}>
-            <Avatar avatar={profile.avatar} size={32} />
+            <Avatar avatar={profile.avatar} crop="head" size={32} />
             {profile.name}
             <span aria-hidden="true">✎</span>
           </button>

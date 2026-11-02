@@ -44,7 +44,7 @@ export function Leaderboard({ rows, limit = 5, highlightId, animKey }: Props) {
               style={{ ['--row-color' as string]: r.color }}
             >
               <span className="lb-rank">{phase === 'after' ? r.rank : i + 1}</span>
-              <Avatar avatar={r.avatar} size={44} />
+              <Avatar avatar={r.avatar} crop="head" size={44} />
               <span className="lb-name">{r.name}</span>
               {r.streak >= 2 && (
                 <span className="lb-streak" title={`Серия: ${r.streak} подряд`}>

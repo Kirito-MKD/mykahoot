@@ -39,7 +39,7 @@ export function TerritoryPanels({ view, state }: { view: HostView; state: Territ
                     <span className="te-crown" aria-label={i === 0 ? 'лидер команды' : undefined}>
                       {i === 0 ? '👑' : ''}
                     </span>
-                    <Avatar avatar={m.avatar} size={26} />
+                    <Avatar avatar={m.avatar} crop="head" size={26} />
                     <span className="te-pname">{m.name}</span>
                     <motion.span key={state.flags[m.id] ?? 0} className="te-flags" initial={{ scale: 1.5 }} animate={{ scale: 1 }}>
                       {state.flags[m.id] ?? 0}🚩

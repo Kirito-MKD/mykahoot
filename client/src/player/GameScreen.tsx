@@ -73,8 +73,12 @@ function ProfileEditor({ view, onClose }: { view: PlayerView; onClose: () => voi
   );
 }
 
-function ordinal(n: number): string {
-  return `${n}-е`;
+/** «на 3-м месте» (предложный падеж) и «3-е место» (именительный) */
+function onPlace(n: number): string {
+  return `на ${n}-м месте`;
+}
+function placeNom(n: number): string {
+  return `${n}-е место`;
 }
 
 export function GameScreen({ view }: { view: PlayerView }) {
@@ -148,7 +152,7 @@ export function GameScreen({ view }: { view: PlayerView }) {
               <div className="pg-mates">
                 {view.teamMates.map((m) => (
                   <span key={m.id} className="pg-mate">
-                    <Avatar avatar={m.avatar} size={40} />
+                    <Avatar avatar={m.avatar} crop="head" size={40} />
                     {m.name}
                   </span>
                 ))}
@@ -243,7 +247,7 @@ export function GameScreen({ view }: { view: PlayerView }) {
                 ))}
               </div>
             )}
-            {r && <p className="pg-sub">Ты на {ordinal(r.rank)} месте</p>}
+            {r && <p className="pg-sub">Ты {onPlace(r.rank)}</p>}
           </div>
         </Panel>
       );
@@ -363,7 +367,7 @@ export function GameScreen({ view }: { view: PlayerView }) {
                 {medal}
               </motion.span>
             )}
-            <h1 className="pg-big">{f.rank === 1 ? 'Ты победил(а)!' : `${ordinal(f.rank)} место`}</h1>
+            <h1 className="pg-big">{f.rank === 1 ? 'Ты победил(а)!' : placeNom(f.rank)}</h1>
             <p className="pg-sub">из {f.playersCount} участников</p>
             <div className="pg-final-stats">
               <span>

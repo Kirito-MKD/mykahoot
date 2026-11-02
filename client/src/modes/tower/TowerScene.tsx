@@ -320,7 +320,7 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
   const noneAdded = live && ev && ev.added.length === 0 && !ev.monster;
 
   return (
-    <div className={`tower-scene ${shaking ? 'is-shaking' : ''}`}>
+    <div className={`tower-scene ${shaking ? 'is-shaking' : ''} ${state.others.length ? 'has-others' : ''}`}>
       <SpaceBackdrop reduced={reduced} />
       <div className="tw-counters" style={{ gridTemplateColumns: `repeat(${columns.length}, 1fr)` }}>
         {columns.map((c) => (

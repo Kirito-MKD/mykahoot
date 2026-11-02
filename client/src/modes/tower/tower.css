@@ -186,3 +186,14 @@
     animation: none;
   }
 }
+
+.tower-scene.has-others .tw-svg {
+  width: calc(100% - 232px);
+}
+.tower-scene.has-others .tw-counters {
+  right: 232px;
+}
+.tower-scene.has-others .tw-note-small {
+  right: auto;
+  left: 14px;
+}

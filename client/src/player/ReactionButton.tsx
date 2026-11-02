@@ -46,8 +46,9 @@ export function ReactionButton({ disabled, initialCooldown }: { disabled: boolea
         {open && (
           <motion.div className="react-fan" role="menu" aria-label="Выбери реакцию" initial="closed" animate="open" exit="closed">
             {REACTIONS.map((e, i) => {
-              const angle = (-160 + (i * 140) / (REACTIONS.length - 1)) * (Math.PI / 180);
-              const r = 104;
+              // Кнопка у правого края экрана — раскрываем веер вверх и влево
+              const angle = (-178 + (i * 90) / (REACTIONS.length - 1)) * (Math.PI / 180);
+              const r = 132;
               return (
                 <motion.button
                   key={e}

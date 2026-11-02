@@ -2,6 +2,9 @@
   display: block;
   overflow: visible;
 }
+.avatar.avatar-crop {
+  overflow: hidden;
+}
 .avatar-idle .avatar-body {
   transform-origin: 100px 210px;
   animation: avatar-idle 2.8s ease-in-out infinite;

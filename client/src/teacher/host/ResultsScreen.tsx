@@ -39,7 +39,7 @@ export function ResultsScreen({ view }: { view: HostView }) {
 
   return (
     <motion.div className="res" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      {confetti && <Confetti />}
+      {confetti && stage === 'podium' && <Confetti />}
       <AnimatePresence mode="wait">
         {stage === 'podium' ? (
           <motion.div key="podium" className="res-podium" exit={{ opacity: 0, y: -30 }}>
