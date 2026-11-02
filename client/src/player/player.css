@@ -1232,3 +1232,18 @@
 .emo-btn:hover {
   background: #fff8e1;
 }
+
+.td-ghost {
+  animation: td-ghost 1s ease-in-out infinite;
+}
+@keyframes td-ghost {
+  50% {
+    opacity: 0.4;
+  }
+}
+.td-target {
+  font-size: 18px;
+  font-weight: 900;
+  fill: #3fd07a;
+  letter-spacing: 0.04em;
+}

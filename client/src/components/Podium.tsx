@@ -71,7 +71,7 @@ export function Podium({ players, onRevealed }: { players: PlayerResult[]; onRev
           <span className="dancefloor-label">Танцпол</span>
           {others.map((p) => (
             <div key={p.id} className="dancefloor-item" title={`${p.rank}. ${p.name}`}>
-              <EmoteAvatar avatar={p.avatar} size={52} emote={emotes[p.id]} />
+              <EmoteAvatar avatar={p.avatar} size={70} emote={emotes[p.id]} />
               <span>{p.name}</span>
             </div>
           ))}

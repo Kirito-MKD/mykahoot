@@ -171,6 +171,28 @@ function Column({
   const top = GROUND - PLAT_H;
   return (
     <motion.g animate={shake}>
+      {/* платформа */}
+      <g transform={`translate(${cx} ${GROUND})`}>
+        <path d={`M${-COLW / 2 + 22} ${-PLAT_H} H${COLW / 2 - 22} Q${COLW / 2 - 8} ${-PLAT_H} ${COLW / 2 - 14} ${-PLAT_H + 16} L${COLW / 2 - 40} 40 Q0 70 ${-COLW / 2 + 40} 40 L${-COLW / 2 + 14} ${-PLAT_H + 16} Q${-COLW / 2 + 8} ${-PLAT_H} ${-COLW / 2 + 22} ${-PLAT_H} Z`} fill="#5B5577" stroke={O} strokeWidth={4} strokeLinejoin="round" />
+        <rect x={-COLW / 2 + 18} y={-PLAT_H} width={COLW - 36} height={14} rx={6} fill={col.color} stroke={O} strokeWidth={3} />
+        <path d="M-40 10 L-30 26 M20 14 L34 30 M-6 30 L4 44" stroke="#3E3A57" strokeWidth={4} strokeLinecap="round" />
+      </g>
+      {/* жители башни */}
+      {members.slice(0, 4).map((m, k) => {
+        const side = k % 2 === 0 ? -1 : 1;
+        const slot = Math.floor(k / 2);
+        const ax = cx + side * (BW / 2 + 18 + slot * 30) - 24;
+        return (
+          <g key={m.id} transform={`translate(${ax} ${GROUND - PLAT_H - 60})`}>
+            <Avatar avatar={m.avatar} size={48} />
+          </g>
+        );
+      })}
+      {members.length > 4 && (
+        <text x={cx + COLW / 2 - 26} y={GROUND - PLAT_H - 66} textAnchor="middle" className="tw-more">
+          +{members.length - 4}
+        </text>
+      )}
       {blocks.map((b, i) => {
         const order = newIds.get(b.id);
         const fresh = animate && order !== undefined;
@@ -196,28 +218,6 @@ function Column({
           </motion.g>
         );
       })}
-      {/* платформа */}
-      <g transform={`translate(${cx} ${GROUND})`}>
-        <path d={`M${-COLW / 2 + 22} ${-PLAT_H} H${COLW / 2 - 22} Q${COLW / 2 - 8} ${-PLAT_H} ${COLW / 2 - 14} ${-PLAT_H + 16} L${COLW / 2 - 40} 40 Q0 70 ${-COLW / 2 + 40} 40 L${-COLW / 2 + 14} ${-PLAT_H + 16} Q${-COLW / 2 + 8} ${-PLAT_H} ${-COLW / 2 + 22} ${-PLAT_H} Z`} fill="#5B5577" stroke={O} strokeWidth={4} strokeLinejoin="round" />
-        <rect x={-COLW / 2 + 18} y={-PLAT_H} width={COLW - 36} height={14} rx={6} fill={col.color} stroke={O} strokeWidth={3} />
-        <path d="M-40 10 L-30 26 M20 14 L34 30 M-6 30 L4 44" stroke="#3E3A57" strokeWidth={4} strokeLinecap="round" />
-      </g>
-      {/* жители башни */}
-      {members.slice(0, 4).map((m, k) => {
-        const side = k % 2 === 0 ? -1 : 1;
-        const slot = Math.floor(k / 2);
-        const ax = cx + side * (BW / 2 + 18 + slot * 30) - 24;
-        return (
-          <g key={m.id} transform={`translate(${ax} ${GROUND - PLAT_H - 60})`}>
-            <Avatar avatar={m.avatar} size={48} />
-          </g>
-        );
-      })}
-      {members.length > 4 && (
-        <text x={cx + COLW / 2 - 26} y={GROUND - PLAT_H - 66} textAnchor="middle" className="tw-more">
-          +{members.length - 4}
-        </text>
-      )}
     </motion.g>
   );
 }
@@ -363,7 +363,10 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
   // Камера: если башня выше экрана — плавно отъезжаем
   const tallest = Math.max(0, ...columns.map((c) => displayBlocks(c).length));
   const needed = PLAT_H + tallest * BH + 150;
+  // Выросли выше экрана — плавно отъезжаем
   const scale = Math.min(1, (GROUND - 30) / needed);
+  // Низкие башни на проекторе крошечные — «камера» опускается и приближает (меньше видимая высота)
+  const visibleH = Math.round(Math.max(380, Math.min(VIEW_H, needed + 190)));
 
   const membersOf = (c: TowerColumn) => {
     if (c.avatar) return [{ id: c.id, avatar: c.avatar }];
@@ -402,7 +405,13 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
           </div>
         ))}
       </div>
-      <svg className="tw-svg" viewBox={`0 0 ${W} ${VIEW_H}`} preserveAspectRatio="xMidYMax meet">
+      <motion.svg
+        className="tw-svg"
+        viewBox={`0 ${VIEW_H - visibleH} ${W} ${visibleH}`}
+        animate={{ viewBox: `0 ${VIEW_H - visibleH} ${W} ${visibleH}` }}
+        transition={{ type: 'spring', stiffness: 60, damping: 18 }}
+        preserveAspectRatio="xMidYMax meet"
+      >
         <motion.g animate={{ scale }} style={{ originX: 0.5, originY: 1 }} transition={{ type: 'spring', stiffness: 60, damping: 18 }}>
           {targetIdx >= 0 && live && (() => {
             const target = columns[targetIdx]!;
@@ -453,7 +462,7 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
             ))}
           </AnimatePresence>
         </motion.g>
-      </svg>
+      </motion.svg>
       {noneAdded && <div className="tw-note">В этом раунде никто не добавил блок</div>}
       {dropping && (
         <DropBanner endsAt={dropping.endsAt} totalMs={dropping.totalMs} placed={placed} total={placed + dropping.pending.length} />

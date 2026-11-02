@@ -246,7 +246,8 @@
 .dancefloor-label {
   align-self: center;
   margin-right: 8px;
-  font-size: 15px;
+  font-size: 17px;
+  font-weight: 900;
   opacity: 0.8;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -255,12 +256,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 64px;
+  width: 84px;
   flex: none;
-  font-size: 12px;
+  font-size: 15px;
 }
 .dancefloor-item span {
-  max-width: 64px;
+  max-width: 84px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

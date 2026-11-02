@@ -260,7 +260,8 @@ export const sfx = {
 // ───────────────────────── Фоновая музыка ─────────────────────────
 
 /** Настроение трека: спокойный грув в лобби, драйв во время вопроса */
-export type MusicMood = 'groove' | 'drive';
+export type MusicMood = 'groove' | 'drive' | 'quiet';
+const MOOD_VOLUME: Record<MusicMood, number> = { groove: 0.15, drive: 0.17, quiet: 0.06 };
 
 const BPM = 126;
 const STEP = 60 / BPM / 4; // шестнадцатая
@@ -282,6 +283,12 @@ class MusicEngine {
 
   setMood(m: MusicMood): void {
     this.mood = m;
+    // Учитель объясняет ответ — музыка уходит на фон, потом возвращается
+    if (this.playing && ctx && musicBus) {
+      musicBus.gain.cancelScheduledValues(ctx.currentTime);
+      musicBus.gain.setValueAtTime(Math.max(0.0001, musicBus.gain.value), ctx.currentTime);
+      musicBus.gain.exponentialRampToValueAtTime(MOOD_VOLUME[m], ctx.currentTime + 0.6);
+    }
   }
 
   start(mood: MusicMood = this.mood): void {
@@ -294,7 +301,7 @@ class MusicEngine {
     this.step = 0;
     musicBus!.gain.cancelScheduledValues(c.currentTime);
     musicBus!.gain.setValueAtTime(0.0001, c.currentTime);
-    musicBus!.gain.exponentialRampToValueAtTime(0.16, c.currentTime + 1.2);
+    musicBus!.gain.exponentialRampToValueAtTime(MOOD_VOLUME[this.mood], c.currentTime + 1.2);
     this.timer = window.setInterval(() => this.schedule(), 25);
   }
 

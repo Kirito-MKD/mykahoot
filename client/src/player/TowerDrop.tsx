@@ -134,6 +134,23 @@ export function TowerDrop({ tower }: { tower: TowerInfo }) {
       </div>
       <button className="td-stage" onClick={() => void drop()} disabled={stage !== 'swing'} aria-label="Бросить блок">
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMax meet">
+          {/* Куда целиться: контур блока на верхушке и зона, где блок не упадёт */}
+          {stage === 'swing' && (
+            <g pointerEvents="none">
+              <rect
+                x={W / 2 - BW / 2 - BW * TOWER_FALL_RATIO}
+                y={topY - BH - 6}
+                width={BW + BW * TOWER_FALL_RATIO * 2}
+                height={BH + 6}
+                rx={8}
+                fill="rgba(63, 208, 122, 0.16)"
+              />
+              <rect x={W / 2 - BW / 2} y={topY - BH} width={BW} height={BH} rx={6} fill="none" stroke="#3FD07A" strokeWidth={3} strokeDasharray="8 6" className="td-ghost" />
+              <text x={W / 2} y={topY - BH - 14} textAnchor="middle" className="td-target">
+                сюда
+              </text>
+            </g>
+          )}
           {/* Направляющая — где верхушка башни */}
           <line x1={W / 2} y1={HANG_Y + 30} x2={W / 2} y2={topY} stroke="rgba(255,255,255,0.35)" strokeWidth={3} strokeDasharray="6 8" />
           {/* Платформа */}

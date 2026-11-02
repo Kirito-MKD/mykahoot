@@ -99,7 +99,13 @@ export function HostGame() {
   const phase = view?.phase;
   useEffect(() => {
     if (!phase) return;
-    music.setMood(phase === 'question' || phase === 'answering' || phase === 'event' ? 'drive' : 'groove');
+    music.setMood(
+      phase === 'question' || phase === 'answering' || phase === 'event'
+        ? 'drive'
+        : phase === 'reveal' || phase === 'rules' || phase === 'leaderboard'
+          ? 'quiet'
+          : 'groove',
+    );
     if (phase === 'finished') {
       // Сначала фанфары пьедестала, потом снова музыка
       music.stop();
