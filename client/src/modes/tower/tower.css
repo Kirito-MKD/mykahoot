@@ -131,15 +131,17 @@
 }
 .tw-note-small {
   top: auto;
+  left: auto;
+  right: 14px;
   bottom: 14px;
-  transform: translateX(-50%);
-  font-size: 18px;
-  padding: 8px 16px;
+  transform: none;
+  font-size: 16px;
+  padding: 8px 14px;
 }
 .tw-alert {
   position: absolute;
   left: 50%;
-  top: 120px;
+  top: 30%;
   translate: -50% 0;
   padding: 10px 22px;
   border-radius: 12px;

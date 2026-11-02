@@ -111,8 +111,16 @@
   height: calc(100vh - 70px);
   padding-bottom: 12px;
 }
+.with-escape.phase-leaderboard .host-body {
+  flex-direction: row;
+}
 .host-escape-stage.is-leaderboard {
-  height: 50vh;
+  height: auto;
+  width: 56%;
+  padding-bottom: 16px;
+}
+.with-escape.phase-leaderboard .lbs-side {
+  padding: 12px 20px 100px 8px;
 }
 .with-escape.phase-event .host-content {
   display: none;

@@ -253,15 +253,18 @@ export function GameScreen({ view }: { view: PlayerView }) {
     case 'event':
       if (view.mode === 'territory' && view.territory) {
         const ownerId = view.teamMode ? `t${view.me.teamId}` : `p${view.me.id}`;
+        const spentAll = (view.lastResult?.flagsEarned ?? 0) > 0 || Object.values(view.territory.captured).length > 0 && (view.territory.captured[view.me.id] ?? 0) > 0;
         content = (
           <Panel k="place">
             <div className="pg-place">
               <div className="pg-place-head">
-                <h1>{view.me.flags > 0 ? 'Расставь флаги!' : 'Флагов нет — смотри, как захватывают другие'}</h1>
+                <h1>{view.me.flags > 0 ? 'Расставь флаги!' : spentAll ? 'Все флаги расставлены!' : 'Флагов нет — смотри, как захватывают другие'}</h1>
                 <p className="pg-sub">
                   {view.me.flags > 0
                     ? 'Ставь рядом со своей территорией. Свободный гекс — 1 флаг, чужой — 2.'
-                    : 'Отвечай верно — и в следующем раунде флаги будут у тебя.'}
+                    : spentAll
+                      ? 'Смотри на экран — как растёт территория.'
+                      : 'Отвечай верно — и в следующем раунде флаги будут у тебя.'}
                 </p>
                 <Bar endsAt={view.territory.placementEndsAt} totalMs={view.territory.placementTotalMs} />
               </div>

@@ -92,16 +92,30 @@ function FlyingBlocks({ flyers, reduced }: { flyers: Flyer[]; reduced: boolean }
   );
 }
 
-function Monster({ x, phase, reduced }: { x: number; phase: 'hidden' | 'up' | 'windup' | 'strike' | 'down'; reduced: boolean }) {
-  const y = phase === 'hidden' || phase === 'down' ? 300 : 0;
+function Monster({
+  x,
+  baseY,
+  mirror,
+  phase,
+  reduced,
+}: {
+  x: number;
+  baseY: number;
+  mirror: boolean;
+  phase: 'hidden' | 'up' | 'windup' | 'strike' | 'down';
+  reduced: boolean;
+}) {
+  // Прячется под платформой и вылезает из-за неё
+  const hiddenY = GROUND + 260 - baseY;
+  const y = phase === 'hidden' || phase === 'down' ? hiddenY : 0;
   const arm = phase === 'windup' ? -55 : phase === 'strike' ? 40 : -10;
   return (
     <motion.g
-      initial={{ y: 300, opacity: reduced ? 0 : 1 }}
+      initial={{ y: hiddenY, opacity: reduced ? 0 : 1 }}
       animate={{ y: reduced ? 0 : y, opacity: reduced ? (phase === 'hidden' || phase === 'down' ? 0 : 1) : 1 }}
       transition={{ type: 'spring', stiffness: phase === 'up' ? 180 : 120, damping: phase === 'up' ? 12 : 20 }}
     >
-      <g transform={`translate(${x} ${GROUND - 40})`}>
+      <g transform={`translate(${x} ${baseY}) scale(${mirror ? -1 : 1} 1)`}>
         {/* огонь снизу */}
         <g className="tw-fire">
           <path d="M-70 120 Q-60 40 -40 70 Q-30 10 -6 60 Q6 0 26 62 Q44 16 54 72 Q70 46 74 120 Z" fill="#FF6A2B" stroke={O} strokeWidth={4} strokeLinejoin="round" />
@@ -299,7 +313,7 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
     sfx.thud();
     const idx = columns.findIndex((c) => c.id === colId);
     const id = b.id * 10 + Math.floor(Math.random() * 9);
-    setPopups((p) => [...p, { id, x: idx * COLW + COLW / 2, y: topY, text: `+10 ${b.playerName}` }]);
+    setPopups((p) => [...p, { id, x: idx * COLW + COLW / 2, y: topY - 16, text: `+10 ${b.playerName}` }]);
     window.setTimeout(() => setPopups((p) => p.filter((x) => x.id !== id)), 1800);
   };
 
@@ -324,7 +338,22 @@ export function TowerScene({ view, animate }: { view: HostView; animate: boolean
       </div>
       <svg className="tw-svg" viewBox={`0 0 ${W} ${VIEW_H}`} preserveAspectRatio="xMidYMax meet">
         <motion.g animate={{ scale }} style={{ originX: 0.5, originY: 1 }} transition={{ type: 'spring', stiffness: 60, damping: 18 }}>
-          {targetIdx >= 0 && live && <Monster x={targetIdx * COLW + COLW / 2} phase={monsterPhase} reduced={reduced} />}
+          {targetIdx >= 0 && live && (() => {
+            const target = columns[targetIdx]!;
+            const height = target.blocks.length + (ev?.monster?.removed.length ?? 0);
+            const topY = GROUND - PLAT_H - height * BH;
+            // Монстр стоит сбоку от башни-лидера и тянется лапой к её верхушке
+            const side = targetIdx === columns.length - 1 && columns.length > 1 ? -1 : 1;
+            return (
+              <Monster
+                x={targetIdx * COLW + COLW / 2 + side * (BW / 2 + 92)}
+                baseY={Math.min(GROUND - 40, topY + 120)}
+                mirror={side === 1}
+                phase={monsterPhase}
+                reduced={reduced}
+              />
+            );
+          })()}
           {columns.map((c, i) => (
             <Column
               key={c.id}

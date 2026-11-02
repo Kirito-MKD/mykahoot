@@ -75,10 +75,10 @@ function ProgressBar({ s, at }: { s: EscapeState; at: number }) {
               key={r.playerId}
               className="es-bar-runner"
               initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: (i % 3) * -18, left: `${(k / s.trackLength) * 100}%`, x: Math.floor(i / 3) * 14 }}
+              animate={{ opacity: 1, y: 0, left: `${(k / s.trackLength) * 100}%`, x: i * 14 - (list.length - 1) * 7 }}
               exit={{ opacity: 0, y: 40, scale: 0.6, transition: { duration: 0.6 } }}
               transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-              style={{ ['--rc' as string]: r.color, zIndex: 10 - (i % 3) }}
+              style={{ ['--rc' as string]: r.color, zIndex: 10 + i }}
               title={r.name}
             >
               <Avatar avatar={r.avatar} size={30} />

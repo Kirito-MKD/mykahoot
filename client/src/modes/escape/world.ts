@@ -8,10 +8,11 @@ import type { Avatar, EscapeRunner, EscapeState } from '@viktorina/shared';
 import { avatarSvgString } from '../../components/avatar/Avatar';
 import { serverNow } from '../../lib/time';
 
-const CELL = 170;
-const START_X = 280;
-const LANES = 4;
+const CELL = 200;
+const START_X = 300;
 const O = 0x1a1033;
+/** Сцена рисуется в «дизайн-единицах» высотой 600 и масштабируется под контейнер */
+const DESIGN_H = 600;
 
 interface Particle {
   x: number;
@@ -76,6 +77,8 @@ function avatarTexture(a: Avatar): Promise<Texture> {
 
 export class EscapeWorld {
   private app = new Application();
+  private root = new Container();
+  private resizeObs: ResizeObserver | null = null;
   private ready = false;
   private destroyed = false;
   private state: EscapeState | null = null;
@@ -106,7 +109,8 @@ export class EscapeWorld {
   private fpsAcc = 0;
   private fpsFrames = 0;
   private arcTimer = 0;
-  private floorY = 400;
+  private floorY = 380;
+  private scale = 1;
 
   constructor(
     private readonly container: HTMLElement,
@@ -118,7 +122,8 @@ export class EscapeWorld {
 
   private async init(): Promise<void> {
     await this.app.init({
-      resizeTo: this.container,
+      width: Math.max(10, this.container.clientWidth),
+      height: Math.max(10, this.container.clientHeight),
       background: 0x0b0620,
       antialias: true,
       autoDensity: true,
@@ -134,6 +139,12 @@ export class EscapeWorld {
       /* шрифт не обязателен */
     }
     this.container.appendChild(this.app.canvas);
+    // Контейнер меняет размер (полоса ↔ весь экран) — подгоняем холст
+    this.resizeObs = new ResizeObserver(() => {
+      if (this.destroyed) return;
+      this.app.renderer.resize(Math.max(10, this.container.clientWidth), Math.max(10, this.container.clientHeight));
+    });
+    this.resizeObs.observe(this.container);
     this.build();
     this.ready = true;
     if (this.state) this.apply(this.state, true);
@@ -151,7 +162,8 @@ export class EscapeWorld {
   }
 
   private build(): void {
-    const stage = this.app.stage;
+    this.app.stage.addChild(this.root);
+    const stage = this.root;
 
     // Слой 1: космос со звёздами (виден в окнах)
     const starTex = this.makeTexture((g) => {
@@ -306,6 +318,7 @@ export class EscapeWorld {
     }
     this.door.position.set(START_X + state.trackLength * CELL + 40, this.floorY);
 
+    this.layout = this.computeLayout(state);
     const seen = new Set<string>();
     const moved = state.moveRev !== this.moveRev && !initial && !levelChanged;
     this.moveRev = state.moveRev;
@@ -342,6 +355,9 @@ export class EscapeWorld {
         }
         v.status = r.status;
       }
+      const lane = this.layout.get(r.playerId)?.lane ?? 0;
+      v.laneY = 30 + lane * 30;
+      v.root.zIndex = lane;
       if (v.avatarKey !== JSON.stringify(r.avatar)) this.loadAvatar(v, r.avatar);
     }
     for (const [id, v] of this.runners) {
@@ -361,15 +377,39 @@ export class EscapeWorld {
     }
   }
 
+  private layout = new Map<string, { dx: number; lane: number }>();
+
+  /** Кто стоит на одной клетке — расставляем сеткой: до 4 рядов в глубину, остальные — вбок */
+  private computeLayout(state: EscapeState): Map<string, { dx: number; lane: number }> {
+    const groups = new Map<string, EscapeRunner[]>();
+    for (const r of state.runners) {
+      const key = r.status === 'escaped' ? 'door' : String(r.pos);
+      groups.set(key, [...(groups.get(key) ?? []), r]);
+    }
+    const out = new Map<string, { dx: number; lane: number }>();
+    for (const list of groups.values()) {
+      list.sort((a, b) => hash(a.playerId) - hash(b.playerId));
+      const rows = Math.min(4, list.length);
+      const cols = Math.ceil(list.length / rows);
+      const step = Math.min(56, (CELL - 30) / Math.max(1, cols - 1 || 1));
+      list.forEach((r, i) => {
+        const col = Math.floor(i / rows);
+        const row = i % rows;
+        out.set(r.playerId, { dx: (col - (cols - 1) / 2) * step + (row % 2 ? 14 : -14) * (cols > 1 ? 0 : 1), lane: row });
+      });
+    }
+    return out;
+  }
+
   private runnerX(r: EscapeRunner): number {
-    const jitter = ((hash(r.playerId) % 7) - 3) * 9;
-    if (r.status === 'escaped') return START_X + (this.state?.trackLength ?? 0) * CELL + 20 + jitter;
-    return START_X + r.pos * CELL + jitter;
+    const dx = this.layout.get(r.playerId)?.dx ?? 0;
+    if (r.status === 'escaped') return START_X + (this.state?.trackLength ?? 0) * CELL + 10 + dx;
+    return START_X + r.pos * CELL + dx;
   }
 
   private createRunner(r: EscapeRunner, x: number): RunnerView {
     const root = new Container();
-    const lane = hash(r.playerId) % LANES;
+    const lane = this.layout.get(r.playerId)?.lane ?? 0;
     const shadow = new Graphics().ellipse(0, 0, 30, 8).fill({ color: 0x000000, alpha: 0.28 });
     const legs = new Graphics();
     const body = new Container();
@@ -406,7 +446,7 @@ export class EscapeWorld {
       moveT: 1,
       moveDur: 1,
       detour: false,
-      laneY: 34 + lane * 24,
+      laneY: 30 + lane * 30,
       phase: (hash(r.playerId) % 100) / 16,
       status: r.status,
       dying: r.status === 'caught' ? 1 : 0,
@@ -482,10 +522,14 @@ export class EscapeWorld {
     if (!this.state) return;
     this.time += dt;
     this.adaptQuality(dt);
-    const W = this.app.screen.width;
-    const H = this.app.screen.height;
+    // Узкая полоса над вопросом — «камера ближе»: срезаем потолок, чтобы герои были крупнее
+    const aspect = this.app.screen.width / Math.max(1, this.app.screen.height);
+    const H = aspect > 3.2 ? 430 : DESIGN_H;
+    this.scale = this.app.screen.height / H;
+    this.root.scale.set(this.scale);
+    const W = this.app.screen.width / this.scale;
     const s = this.state;
-    const newFloor = Math.round(H * 0.6);
+    const newFloor = Math.round(H * (aspect > 3.2 ? 0.74 : 0.66));
     if (newFloor !== this.floorY) {
       this.floorY = newFloor;
       this.drawObstacles(s);
@@ -519,8 +563,9 @@ export class EscapeWorld {
     this.planets.x = -((this.camX * 0.18 * pf + (this.reduced ? 0 : this.time * 4)) % 3000);
     this.planets.y = H * 0.08;
     this.wall.width = W;
-    this.wall.height = Math.min(400, this.floorY + 40);
+    this.wall.height = this.floorY + 40;
     this.wall.y = this.floorY - this.wall.height + 2;
+    this.wall.tilePosition.y = this.wall.height - 400;
     this.wall.tilePosition.x = -this.camX * 0.5 * pf;
     this.world.x = -this.camX;
     this.floor.x = this.camX - 40;
@@ -693,6 +738,7 @@ export class EscapeWorld {
 
   destroy(): void {
     this.destroyed = true;
+    this.resizeObs?.disconnect();
     if (this.ready) {
       this.app.destroy(true, { children: true });
     }
